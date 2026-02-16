@@ -1,0 +1,173 @@
+import React, { useState } from 'react';
+
+interface TeamDrankInvoicesScreenProps {
+  onBack: () => void;
+}
+
+export const TeamDrankInvoicesScreen: React.FC<TeamDrankInvoicesScreenProps> = ({ onBack }) => {
+  const [activeTab, setActiveTab] = useState<'vergelijking' | 'facturen'>('vergelijking');
+
+  // Mock data for comparison logic
+  const comparisonData = [
+    { id: 1, name: 'Bier (Jupiler/Stella)', purchased: 1200, consumed: 1142, unit: 'stuks', warning: true },
+    { id: 2, name: 'Frisdrank (Cola/Fanta)', purchased: 450, consumed: 448, unit: 'stuks', warning: false },
+    { id: 3, name: 'Speciale Bieren', purchased: 120, consumed: 95, unit: 'stuks', warning: true },
+    { id: 4, name: 'Chips & Snacks', purchased: 200, consumed: 198, unit: 'stuks', warning: false },
+  ];
+
+  const invoices = [
+    { id: 1, supplier: 'Bierhandel Peeters', date: '14 Okt 2023', amount: 452.20, items: '10 bakken Jupiler, 5 Cola' },
+    { id: 2, supplier: 'Colruyt', date: '02 Okt 2023', amount: 124.50, items: 'Chips, Snacks, Water' },
+    { id: 3, supplier: 'Bierhandel Peeters', date: '18 Sep 2023', amount: 850.00, items: 'Startdag levering' },
+  ];
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#0f172a] text-white font-sans">
+      {/* Header */}
+      <header className="px-4 py-4 sticky top-0 bg-[#0f172a] z-10 border-b border-gray-800/50">
+        <div className="flex items-center gap-4 mb-4">
+          <button onClick={onBack} className="p-1 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white">
+             <span className="material-icons-round text-2xl">arrow_back_ios_new</span>
+          </button>
+          <div className="flex-1">
+             <h1 className="text-xl font-bold leading-tight">Facturen & Controle</h1>
+             <p className="text-xs text-gray-400">Periode: Sept - Okt</p>
+          </div>
+          <button className="bg-blue-600/20 text-blue-400 text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-600/30">
+            Periode sluiten
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex p-1 bg-[#1e293b] rounded-xl">
+          <button 
+            onClick={() => setActiveTab('vergelijking')}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'vergelijking' ? 'bg-[#334155] text-white shadow-sm' : 'text-gray-400'}`}
+          >
+            Controle
+          </button>
+          <button 
+            onClick={() => setActiveTab('facturen')}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'facturen' ? 'bg-[#334155] text-white shadow-sm' : 'text-gray-400'}`}
+          >
+            Facturen
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 px-4 py-4 pb-24 overflow-y-auto">
+        
+        {activeTab === 'vergelijking' ? (
+          <div className="space-y-6">
+            {/* Period Summary Card */}
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl p-5 border border-indigo-500/30 shadow-lg">
+               <h2 className="text-sm font-bold text-indigo-200 uppercase tracking-wide mb-4">Periode Overzicht</h2>
+               <div className="flex justify-between items-center relative">
+                 <div className="text-center flex-1">
+                    <div className="text-2xl font-bold text-white">1.970</div>
+                    <div className="text-[10px] text-indigo-300 uppercase">Ingekocht</div>
+                 </div>
+                 <div className="w-px h-10 bg-indigo-500/30"></div>
+                 <div className="text-center flex-1">
+                    <div className="text-2xl font-bold text-white">1.883</div>
+                    <div className="text-[10px] text-indigo-300 uppercase">Gestreept</div>
+                 </div>
+                 <div className="w-px h-10 bg-indigo-500/30"></div>
+                 <div className="text-center flex-1">
+                    <div className="text-2xl font-bold text-red-400">-87</div>
+                    <div className="text-[10px] text-red-300/70 uppercase">Verschil</div>
+                 </div>
+               </div>
+               <div className="mt-4 bg-indigo-950/50 rounded-lg p-3 border border-indigo-500/20 text-xs text-indigo-200 flex items-start gap-2">
+                 <span className="material-icons-round text-sm mt-0.5">info</span>
+                 <span>Er zijn <strong>87 consumpties</strong> meer ingekocht dan er gestreept zijn deze periode. Controleer de stock of breng in rekening als verlies.</span>
+               </div>
+            </div>
+
+            {/* Detailed List */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-1">Details per categorie</h3>
+              <div className="space-y-3">
+                {comparisonData.map((item) => {
+                   const diff = item.consumed - item.purchased;
+                   return (
+                    <div key={item.id} className="bg-[#1e293b] p-4 rounded-xl border border-gray-800">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-bold text-white">{item.name}</h4>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${diff < -10 ? 'bg-red-900/30 text-red-400 border border-red-900/50' : 'bg-green-900/30 text-green-400 border border-green-900/50'}`}>
+                          {diff > 0 ? '+' : ''}{diff} {item.unit}
+                        </span>
+                      </div>
+                      
+                      {/* Progress Bar Visual */}
+                      <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden mb-2">
+                         <div 
+                           className="absolute top-0 left-0 h-full bg-blue-500 rounded-full z-10" 
+                           style={{ width: `${(item.consumed / item.purchased) * 100}%` }}
+                         ></div>
+                         {/* Marker for purchased amount (always 100% relative width in this context, but visualize shortage) */}
+                      </div>
+                      
+                      <div className="flex justify-between text-xs text-gray-400">
+                        <span>Gestreept: <span className="text-white font-medium">{item.consumed}</span></span>
+                        <span>Ingekocht: <span className="text-white font-medium">{item.purchased}</span></span>
+                      </div>
+                    </div>
+                   );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Upload Area */}
+            <div className="border-2 border-dashed border-gray-700 rounded-2xl p-6 flex flex-col items-center justify-center bg-[#1e293b]/30 hover:bg-[#1e293b]/50 transition-colors cursor-pointer group">
+               <div className="w-12 h-12 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round text-2xl">cloud_upload</span>
+               </div>
+               <p className="font-bold text-sm text-gray-300">Factuur uploaden</p>
+               <p className="text-xs text-gray-500 mt-1">PDF of Foto (Max 5MB)</p>
+            </div>
+
+            {/* Invoices List */}
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">Verwerkte Facturen</h3>
+            <div className="space-y-3">
+               {invoices.map((inv) => (
+                 <div key={inv.id} className="bg-[#1e293b] p-4 rounded-xl border border-gray-800 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-gray-400">
+                          <span className="material-icons-round">description</span>
+                       </div>
+                       <div>
+                          <h4 className="font-bold text-white text-sm">{inv.supplier}</h4>
+                          <p className="text-xs text-gray-400">{inv.date}</p>
+                       </div>
+                    </div>
+                    <div className="text-right">
+                       <div className="font-bold text-white">€ {inv.amount.toFixed(2)}</div>
+                       <div className="text-[10px] text-green-400">Verwerkt</div>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Footer Actions */}
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-[#0f172a] border-t border-gray-800 z-20 flex gap-3">
+        {activeTab === 'vergelijking' ? (
+           <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+             <span className="material-icons-round">assessment</span>
+             Rapport Genereren
+           </button>
+        ) : (
+           <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+             <span className="material-icons-round">add</span>
+             Nieuwe Factuur
+           </button>
+        )}
+      </footer>
+    </div>
+  );
+};
