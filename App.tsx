@@ -14,6 +14,8 @@ import { TeamDrankStockScreen } from './screens/TeamDrankStockScreen';
 import { TeamDrankBillingScreen } from './screens/TeamDrankBillingScreen';
 import { TeamDrankInvoicesScreen } from './screens/TeamDrankInvoicesScreen';
 import { NudgeSelectorScreen } from './screens/NudgeSelectorScreen';
+import { NotificationsScreen } from './screens/NotificationsScreen';
+import { NewMessageScreen } from './screens/NewMessageScreen';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -30,22 +32,23 @@ const App: React.FC = () => {
   // Handle Internal Routing (from Home dashboard)
   const handleInternalNavigate = (screenId: string) => {
     // Save previous screen for back navigation from sub-screens
-    if (['strepen-overview', 'nudge-selector', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices'].includes(screenId)) {
+    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices'].includes(screenId)) {
       setPreviousScreen(currentScreen);
     }
     
     setCurrentScreen(screenId);
     
-    if (['home', 'strepen', 'agenda', 'settings'].includes(screenId)) {
+    if (['home', 'strepen', 'agenda', 'notifications', 'settings'].includes(screenId)) {
       setActiveTab(screenId);
     } else {
-      // Keep active tab as home if navigating to a submodule
+      // Keep active tab logic
       const subModules = [
         'frieten', 
         'agenda-manage', 
         'fries-overview', 
         'strepen-overview',
-        'nudge-selector', 
+        'nudge-selector',
+        'new-message',
         'roles-manage',
         'team-drank-dashboard',
         'team-drank-stock',
@@ -54,10 +57,11 @@ const App: React.FC = () => {
       ];
       
       if (subModules.includes(screenId)) {
-        // Keep current tab active if within context (e.g. Strepen tab for strepen overview)
         if ((screenId === 'strepen-overview' || screenId === 'nudge-selector') && activeTab === 'strepen') {
-           // do nothing, keep strepen tab active
-        } else if (activeTab !== 'home' && !['strepen-overview', 'nudge-selector'].includes(screenId)) {
+           // keep strepen
+        } else if (screenId === 'new-message' && activeTab === 'notifications') {
+           // keep notifications
+        } else if (activeTab !== 'home' && !['strepen-overview', 'nudge-selector', 'new-message'].includes(screenId)) {
            setActiveTab('home');
         }
       }
@@ -78,6 +82,12 @@ const App: React.FC = () => {
         return <ConsumptionOverviewScreen onBack={() => handleInternalNavigate(previousScreen)} />;
       case 'nudge-selector':
         return <NudgeSelectorScreen onBack={() => handleInternalNavigate(previousScreen)} />;
+      
+      case 'notifications':
+        return <NotificationsScreen />;
+      case 'new-message':
+        return <NewMessageScreen onBack={() => handleInternalNavigate(previousScreen)} />;
+
       case 'frieten':
         return <FriesScreen onNavigateOverview={() => handleInternalNavigate('fries-overview')} />;
       case 'fries-overview':
@@ -109,8 +119,8 @@ const App: React.FC = () => {
   return (
     <div className="text-base">
       {renderScreen()}
-      {/* Hide bottom nav on full screen modals if desired */}
-      {!['agenda-manage', 'fries-overview', 'strepen-overview', 'nudge-selector', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices'].includes(currentScreen) && (
+      {/* Hide bottom nav on full screen modals */}
+      {!['agenda-manage', 'fries-overview', 'strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices'].includes(currentScreen) && (
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       )}
     </div>

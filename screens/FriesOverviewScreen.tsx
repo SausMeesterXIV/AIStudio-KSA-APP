@@ -135,9 +135,9 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack
         <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-between group active:scale-[0.99] transition-all">
           <div className="flex items-center gap-3">
              <div className="bg-white/20 p-1 rounded-md">
-               <span className="material-icons-round text-lg">payments</span>
+               <span className="material-icons-round text-lg">check_circle</span>
              </div>
-             <span>Bestelling Afrekenen</span>
+             <span>Bestelling Afronden</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-lg">€ 215,40</span>

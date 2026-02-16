@@ -47,7 +47,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
              <span className="material-icons-round text-primary text-sm">admin_panel_settings</span>
              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Hoofdleiding</h2>
           </div>
-          <div className="space-y-3">
+          <div className="grid gap-3">
             {/* Rollen & Beheer Card */}
             <div 
               onClick={() => onNavigate('roles-manage')}
@@ -60,6 +60,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">Rollen & Beheer</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Rechten aanpassen</p>
+                </div>
+              </div>
+              <span className="material-icons-round text-gray-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+            </div>
+
+            {/* Send Message Card */}
+            <div 
+              onClick={() => onNavigate('new-message')}
+              className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                  <span className="material-icons-round">send</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">Bericht Versturen</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Naar leiding of groepen</p>
                 </div>
               </div>
               <span className="material-icons-round text-gray-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
