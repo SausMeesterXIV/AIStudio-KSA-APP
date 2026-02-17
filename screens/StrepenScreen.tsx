@@ -1,134 +1,428 @@
-import React, { useState } from 'react';
-import { Transaction } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Drink } from '../types';
+import { ChevronBack } from '../components/ChevronBack';
+import { supabase } from '../lib/supabase';
+import { MOCK_USERS } from '../lib/data';
 
 interface StrepenScreenProps {
   onNavigateOverview: () => void;
   onNavigateNudge: () => void;
+  onNavigateInvoice: () => void;
+  onBack: () => void;
+  currentBalance: number;
+  onAddCost: (amount: number) => void;
 }
 
-export const StrepenScreen: React.FC<StrepenScreenProps> = ({ onNavigateOverview, onNavigateNudge }) => {
-  const [count, setCount] = useState(1);
-  const [selectedDrink, setSelectedDrink] = useState('Cola');
+export const StrepenScreen: React.FC<StrepenScreenProps> = ({ 
+  onNavigateOverview, 
+  onNavigateNudge, 
+  onNavigateInvoice, 
+  onBack,
+  currentBalance,
+  onAddCost
+}) => {
+  // State to store count PER drink ID. Key = drinkId (string), Value = count (number)
+  // Value 0 represents an empty input (user cleared it)
+  const [drinkCounts, setDrinkCounts] = useState<Record<string, number>>({});
+  
+  const [selectedDrink, setSelectedDrink] = useState<Drink | null>(null);
   const [totalToday, setTotalToday] = useState(4);
-  const [totalCost, setTotalCost] = useState(12.50);
+  
+  // State for data from Supabase
+  const [drinks, setDrinks] = useState<Drink[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const drinks = ['Cola', 'Bier', 'Water', 'Chips', 'Ice Tea'];
-  const drinkPrices: {[key: string]: number} = { 'Cola': 1.0, 'Bier': 1.2, 'Water': 0.8, 'Chips': 1.5, 'Ice Tea': 1.5 };
+  // Admin / Team Drank State
+  const [isManageMode, setIsManageMode] = useState(false);
+  const [newDrinkName, setNewDrinkName] = useState('');
+  const [newDrinkPrice, setNewDrinkPrice] = useState('');
+  
+  // Temporary Drink State
+  const [isTemporary, setIsTemporary] = useState(false);
+  const [validUntil, setValidUntil] = useState('');
 
-  // Mock data for feed
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: '1', userId: 'u1', userName: 'Thomas Peeters', userAvatar: 'https://i.pravatar.cc/150?u=thomas', amount: 12, type: 'drink', timestamp: '2u geleden', details: 'Leiding' },
-    { id: '2', userId: 'u2', userName: 'Sarah De Wit', userAvatar: 'https://i.pravatar.cc/150?u=sarah', amount: 8, type: 'drink', timestamp: '5u geleden', details: 'Hoofdleiding' },
-    { id: '3', userId: 'u3', userName: 'Lucas V.', userAvatar: 'https://i.pravatar.cc/150?u=lucas', amount: 15, type: 'drink', timestamp: 'Gisteren', details: 'Leiding' },
-  ]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddStripe = () => {
-    // Optimistic update
-    setTotalToday(prev => prev + count);
-    setTotalCost(prev => prev + (count * (drinkPrices[selectedDrink] || 1)));
-    
-    // Add to local feed (mock)
-    const newTx: Transaction = {
-      id: Date.now().toString(),
-      userId: 'me',
-      userName: 'Jij',
-      userAvatar: 'https://i.pravatar.cc/150?u=jan',
-      amount: totalToday + count,
-      type: 'drink',
-      timestamp: 'Zonet',
-      details: selectedDrink
-    };
-    setTransactions([newTx, ...transactions]);
-    setCount(1); // Reset
+  // Helper to get count for current drink
+  // Returns 0 if cleared, otherwise defaults to 1 if not set
+  const getCurrentCountRaw = () => {
+    if (!selectedDrink) return 1;
+    const val = drinkCounts[String(selectedDrink.id)];
+    return val !== undefined ? val : 1;
   };
 
+  // Helper to set count for current drink
+  const updateCurrentCount = (val: number) => {
+    if (!selectedDrink) return;
+    // Allow 0 (for empty input), but prevent negative
+    const safeVal = Math.max(0, val);
+    setDrinkCounts(prev => ({
+      ...prev,
+      [String(selectedDrink.id)]: safeVal
+    }));
+  };
+
+  // Set default date to 1 week from now when component mounts
+  useEffect(() => {
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    setValidUntil(nextWeek.toISOString().split('T')[0]);
+  }, []);
+
+  // 1. Fetch Drinks from Supabase
+  useEffect(() => {
+    fetchDrinks();
+  }, []);
+
+  const fetchDrinks = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('dranken')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+
+      if (data) {
+        setDrinks(data);
+        if (data.length > 0) setSelectedDrink(data[0]);
+      }
+    } catch (error) {
+      // Quietly fall back to mock data instead of erroring out
+      console.log('Demo mode: Using mock drink data (Backend not configured)');
+      
+      const fallback: Drink[] = [
+        { id: '1', name: 'Cola', price: 1.00 },
+        { id: '2', name: 'Bier', price: 1.20 },
+        { id: '3', name: 'Water', price: 0.80 },
+        { id: '4', name: 'Chips', price: 1.50 },
+        { id: '5', name: 'Ice-Tea', price: 1.10 },
+        { id: '99', name: 'Cocktail vd Week', price: 4.50, isTemporary: true, validUntil: '2023-11-01' },
+      ];
+      setDrinks(fallback);
+      setSelectedDrink(fallback[0]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Add New Drink (Admin/Team Drank)
+  const handleAddNewDrink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDrinkName || !newDrinkPrice) return;
+
+    setIsSubmitting(true);
+    try {
+      const price = parseFloat(newDrinkPrice.replace(',', '.'));
+      
+      const newDrinkPayload = {
+        name: newDrinkName,
+        price: price,
+        isTemporary: isTemporary,
+        validUntil: isTemporary ? validUntil : null,
+      };
+
+      const { data, error } = await supabase
+        .from('dranken')
+        .insert([newDrinkPayload])
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        setDrinks([...drinks, ...data]);
+        resetForm();
+        alert('Drank succesvol toegevoegd!');
+      }
+    } catch (error) {
+      console.log('Demo mode: Adding drink locally');
+      // Fallback for demo without backend
+      const mockId = Math.random().toString(36).substr(2, 9);
+      const newMockDrink: Drink = {
+         id: mockId,
+         name: newDrinkName,
+         price: parseFloat(newDrinkPrice.replace(',', '.')),
+         isTemporary: isTemporary,
+         validUntil: isTemporary ? validUntil : undefined
+      };
+      setDrinks([...drinks, newMockDrink]);
+      resetForm();
+      alert('Drank toegevoegd (Demo modus)');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setNewDrinkName('');
+    setNewDrinkPrice('');
+    setIsTemporary(false);
+    // Reset date to next week
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    setValidUntil(nextWeek.toISOString().split('T')[0]);
+  };
+
+  // Generate Leaderboard based on MOCK_USERS
+  // In a real app, this would come from a query aggregation
+  const leaderboard = MOCK_USERS.map((user, index) => ({
+    id: user.id,
+    name: user.nickname || user.name, // Use nickname if available
+    avatar: user.avatar,
+    status: user.status,
+    // Mock random beer counts for display purposes
+    beerCount: Math.floor(Math.random() * 40) + 5,
+    lastActive: index % 3 === 0 ? 'Zonet' : `${index + 1}u geleden`
+  })).sort((a, b) => b.beerCount - a.beerCount).slice(0, 10);
+
+  const handleAddStripe = () => {
+    if (!selectedDrink) return;
+    
+    // If raw is 0 (empty input), default to 1 for the action
+    const raw = getCurrentCountRaw();
+    const countToAdd = raw === 0 ? 1 : raw;
+
+    const cost = countToAdd * selectedDrink.price;
+    
+    // Update global balance
+    onAddCost(cost);
+    
+    // Optimistic update local
+    setTotalToday(prev => prev + countToAdd);
+    
+    // Reset count for THIS drink back to 1
+    updateCurrentCount(1);
+  };
+
+  // Safe count for display calculations (treat 0 as 0 for price calc, but logic handles it)
+  const displayCount = getCurrentCountRaw();
+
   return (
-    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] transition-colors duration-200">
       {/* Header */}
-      <header className="bg-primary pt-12 pb-6 px-6 shadow-lg rounded-b-[2rem] relative z-10 text-white">
+      <header className="bg-white dark:bg-[#1e2330] pt-6 pb-6 px-4 shadow-sm relative z-10 rounded-b-[2rem] transition-colors">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">Strepen</h1>
-          <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-             <span className="material-icons-round text-white">settings</span>
-          </div>
+           <div className="flex items-center gap-2">
+             <ChevronBack onClick={onBack} />
+             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Strepen</h1>
+           </div>
+           {/* Settings button toggles Manage mode */}
+           <div 
+             onClick={() => setIsManageMode(!isManageMode)}
+             className={`p-2 rounded-full cursor-pointer transition-colors ${isManageMode ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
+           >
+             <span className="material-icons-round">{isManageMode ? 'close' : 'settings'}</span>
+           </div>
         </div>
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 mt-2 p-4 rounded-xl flex items-center justify-between">
+        <div className="bg-blue-600 dark:bg-blue-600 text-white p-4 rounded-xl flex items-center justify-between shadow-lg shadow-blue-600/20">
           <div>
-            <p className="text-xs font-medium text-blue-200 uppercase tracking-wider">Huidig Saldo</p>
-            <p className="text-2xl font-bold">€ {totalCost.toFixed(2).replace('.', ',')}</p>
+            <p className="text-xs font-medium text-blue-100 uppercase tracking-wider">Voorlopige Drankrekening</p>
+            <p className="text-2xl font-bold">€ {currentBalance.toFixed(2).replace('.', ',')}</p>
           </div>
-          <button className="bg-white text-primary px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-50 transition-colors flex items-center gap-1">
+          <button 
+            onClick={onNavigateInvoice}
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-1 backdrop-blur-sm"
+          >
              Detail <span className="material-icons-round text-sm">chevron_right</span>
           </button>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
         {/* Input Section */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <span className="material-icons-round text-primary">add_circle</span>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="material-icons-round text-blue-600 dark:text-blue-500">add_circle</span>
               Strepen zetten
             </h2>
+            {loading && <span className="text-xs text-gray-400">Laden...</span>}
           </div>
-          <div className="bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-primary font-bold">J</div>
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">Jouw Totaal</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Vandaag: {totalToday} streepjes</p>
-                </div>
+          <div className="bg-white dark:bg-[#1e2330] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors">
+            
+            {/* Header: User Info only */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-500 font-bold">J</div>
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-white">Jouw Totaal</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Vandaag: {totalToday} streepjes</p>
               </div>
-              <span className="text-3xl font-bold text-primary">{totalToday}</span>
             </div>
 
-            {/* Stepper */}
-            <div className="flex items-center justify-between gap-4">
-              <button 
-                onClick={() => setCount(Math.max(1, count - 1))}
-                className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all flex items-center justify-center shadow-sm"
-              >
-                <span className="material-icons-round text-3xl">remove</span>
-              </button>
-              
-              <div className="flex-1 flex flex-col items-center justify-center h-16 bg-primary/5 dark:bg-primary/10 rounded-2xl border border-primary/20 relative overflow-hidden">
-                <span className="text-xs uppercase font-bold text-primary tracking-wide mb-1 opacity-70">Aantal: {count}</span>
-                <span className="text-2xl font-black text-primary">{selectedDrink}</span>
+             {/* Drink Selector */}
+            <div className="mb-8">
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2.5">Kies Drank</p>
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                {drinks.map(drink => (
+                  <button 
+                    key={drink.id}
+                    onClick={() => setSelectedDrink(drink)}
+                    className={`px-4 py-2.5 text-sm font-medium rounded-xl whitespace-nowrap shadow-sm transition-all flex items-center gap-2 ${
+                      selectedDrink?.id === drink.id
+                        ? 'bg-blue-600 text-white ring-2 ring-blue-600 ring-offset-2 dark:ring-offset-[#1e2330]' 
+                        : 'bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {drink.name}
+                    {drink.isTemporary && <span className="material-icons-round text-[10px] opacity-70">timer</span>}
+                  </button>
+                ))}
               </div>
-
-              <button 
-                onClick={handleAddStripe}
-                className="w-16 h-16 rounded-2xl bg-primary text-white hover:bg-blue-800 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-blue-500/30"
-              >
-                <span className="material-icons-round text-3xl">add</span>
-              </button>
             </div>
 
-            {/* Drink Selector */}
-            <div className="mt-6 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-              {drinks.map(drink => (
+            {/* Quantity Stepper */}
+            <div className="mb-6">
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2.5">Aantal</p>
+              <div className="flex items-center justify-between gap-4">
                 <button 
-                  key={drink}
-                  onClick={() => setSelectedDrink(drink)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap shadow-sm transition-colors ${
-                    selectedDrink === drink 
-                      ? 'bg-primary text-white' 
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
+                  onClick={() => updateCurrentCount(displayCount - 1)}
+                  className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all flex items-center justify-center shadow-sm"
                 >
-                  {drink}
+                  <span className="material-icons-round text-3xl">remove</span>
                 </button>
-              ))}
+                
+                <div className="flex-1 flex flex-col items-center justify-center h-14 bg-gray-50 dark:bg-[#151a25] rounded-2xl border border-gray-200 dark:border-gray-700/50 relative overflow-hidden group focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
+                  <input 
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min="1"
+                    value={displayCount === 0 ? '' : displayCount}
+                    onChange={(e) => {
+                       const val = e.target.value === '' ? 0 : parseInt(e.target.value);
+                       if (!isNaN(val)) updateCurrentCount(val);
+                    }}
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    className="w-full text-center bg-transparent border-none p-0 text-2xl font-black text-gray-900 dark:text-white focus:ring-0 appearance-none m-0"
+                    style={{ MozAppearance: 'textfield' }}
+                  />
+                </div>
+
+                <button 
+                  onClick={() => updateCurrentCount(displayCount + 1)}
+                  className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all flex items-center justify-center shadow-sm"
+                >
+                  <span className="material-icons-round text-3xl">add</span>
+                </button>
+              </div>
             </div>
+
+            {/* CONFIRM BUTTON */}
+            <button 
+              onClick={handleAddStripe}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/30 flex items-center justify-between group active:scale-[0.98] transition-all"
+            >
+              <div className="flex flex-col items-start">
+                 <span className="text-xs font-medium text-blue-200 uppercase">Toevoegen</span>
+                 <span className="text-lg">
+                   {displayCount === 0 ? 1 : displayCount}x {selectedDrink ? selectedDrink.name : 'Selecteer'}
+                 </span>
+              </div>
+              <div className="flex items-center gap-2">
+                 <span className="text-xl font-bold bg-white/20 px-3 py-1 rounded-lg">
+                   € {((selectedDrink?.price || 0) * (displayCount === 0 ? 1 : displayCount)).toFixed(2)}
+                 </span>
+                 <span className="material-icons-round bg-white text-blue-600 rounded-full p-1">arrow_forward</span>
+              </div>
+            </button>
           </div>
         </section>
+
+        {/* 2. Admin / Team Drank Section */}
+        {isManageMode && (
+          <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+             <div className="flex items-center gap-2 mb-3">
+               <span className="material-icons-round text-orange-500">settings_applications</span>
+               <h2 className="text-lg font-bold text-gray-900 dark:text-white">Beheer (Admin & Team Drank)</h2>
+             </div>
+             
+             <form onSubmit={handleAddNewDrink} className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 p-5 rounded-2xl space-y-4">
+               
+               <div className="flex justify-between items-center">
+                 <h3 className="text-sm font-bold text-orange-800 dark:text-orange-200">Nieuwe drank toevoegen</h3>
+                 {/* Permanent vs Temporary Toggle */}
+                 <div className="bg-white dark:bg-[#1f293b] p-1 rounded-lg border border-orange-200 dark:border-orange-800 flex text-xs font-bold">
+                    <button
+                      type="button" 
+                      onClick={() => setIsTemporary(false)}
+                      className={`px-3 py-1 rounded-md transition-all ${!isTemporary ? 'bg-orange-100 text-orange-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Permanent
+                    </button>
+                    <button
+                      type="button" 
+                      onClick={() => setIsTemporary(true)}
+                      className={`px-3 py-1 rounded-md transition-all ${isTemporary ? 'bg-orange-100 text-orange-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Tijdelijk
+                    </button>
+                 </div>
+               </div>
+
+               <div className="grid grid-cols-3 gap-3">
+                 <div className="col-span-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">Naam</label>
+                    <input 
+                      type="text" 
+                      placeholder="Naam (bv. Mojito)" 
+                      value={newDrinkName}
+                      onChange={(e) => setNewDrinkName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1f2937] text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                    />
+                 </div>
+                 <div>
+                   <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">Prijs</label>
+                   <input 
+                     type="number" 
+                     step="0.10" 
+                     inputMode="decimal"
+                     placeholder="€" 
+                     value={newDrinkPrice}
+                     onChange={(e) => setNewDrinkPrice(e.target.value)}
+                     className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1f2937] text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                   />
+                 </div>
+               </div>
+
+               {isTemporary && (
+                  <div className="animate-in fade-in duration-300">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">Geldig tot (verdwijnt automatisch)</label>
+                    <input 
+                      type="date"
+                      value={validUntil}
+                      onChange={(e) => setValidUntil(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1f2937] text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                    />
+                    <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 ml-1 flex items-center gap-1">
+                      <span className="material-icons-round text-xs">info</span>
+                      Ideaal voor speciale activiteiten of cocktailavonden.
+                    </p>
+                  </div>
+               )}
+
+               <button 
+                 type="submit"
+                 disabled={isSubmitting}
+                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+               >
+                 {isSubmitting ? (
+                   <span className="text-xs">Toevoegen...</span>
+                 ) : (
+                   <>
+                     <span className="material-icons-round text-sm">add</span>
+                     {isTemporary ? 'Tijdelijke Drank Toevoegen' : 'Toevoegen aan Lijst'}
+                   </>
+                 )}
+               </button>
+             </form>
+          </section>
+        )}
 
         {/* Nudge Banner */}
         <div 
           onClick={onNavigateNudge}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 shadow-lg shadow-blue-500/20 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
+          className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-4 shadow-lg shadow-indigo-500/20 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
         >
            <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
@@ -136,43 +430,54 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({ onNavigateOverview
               </div>
               <div>
                  <h3 className="font-bold text-white text-base">Stuur een Nudge</h3>
-                 <p className="text-xs text-blue-100 leading-tight">Stuur een anonieme herinnering<br/>naar een medeleider</p>
+                 <p className="text-xs text-indigo-100 leading-tight">Stuur een anonieme herinnering<br/>naar een medeleider</p>
               </div>
            </div>
            <span className="material-icons-round text-white/70">chevron_right</span>
         </div>
 
-        {/* Feed Section */}
+        {/* Top 10 Leaderboard Section */}
         <section>
           <div className="flex items-center justify-between mb-3 mt-2">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <span className="material-icons-round text-primary">groups</span>
-              Strepen van iedereen
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="material-icons-round text-amber-500">emoji_events</span>
+              Top 10 Bier
             </h2>
             <button 
               onClick={onNavigateOverview}
-              className="text-primary text-sm font-semibold hover:underline"
+              className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline"
             >
               Bekijk alles
             </button>
           </div>
           
           <div className="space-y-3">
-            {transactions.map((tx) => (
-              <div key={tx.id} className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center gap-3">
-                  <img src={tx.userAvatar} alt={tx.userName} className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-gray-600 shadow-sm" />
-                  <div>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{tx.userName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{tx.details} • {tx.timestamp}</p>
+            {leaderboard.map((user, index) => {
+              // Medal colors for top 3
+              let rankColor = "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400";
+              if (index === 0) rankColor = "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700";
+              if (index === 1) rankColor = "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600";
+              if (index === 2) rankColor = "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-400 border border-orange-200 dark:border-orange-700";
+
+              return (
+                <div key={user.id} className="bg-white dark:bg-[#1e2330] p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${rankColor}`}>
+                      #{index + 1}
+                    </div>
+                    <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">{user.name}</p>
+                      <p className="text-xs text-gray-400">{user.status === 'online' ? 'Online' : 'Offline'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <span className="material-icons-round text-amber-500 text-xs">sports_bar</span>
+                    <span className="font-bold text-gray-700 dark:text-gray-200">{user.beerCount}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-600">
-                  <span className="material-icons-round text-gray-400 text-xs">local_drink</span>
-                  <span className="font-bold text-gray-700 dark:text-gray-200">{tx.amount}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </main>

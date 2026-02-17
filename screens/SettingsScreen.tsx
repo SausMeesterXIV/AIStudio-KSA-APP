@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { ChevronBack } from '../components/ChevronBack';
+import { getCurrentUser } from '../lib/data';
 
-export const SettingsScreen: React.FC = () => {
+interface SettingsScreenProps {
+  onBack: () => void;
+}
+
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   const [isDark, setIsDark] = useState(false);
+  const currentUser = getCurrentUser();
+  const [nickname, setNickname] = useState(currentUser.nickname || '');
 
   useEffect(() => {
     // Check initial
@@ -20,46 +28,88 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
+  const handleSaveNickname = () => {
+    // In a real app, this would save to backend. 
+    // For now we just update the local object (which resets on reload but works for the session)
+    currentUser.nickname = nickname;
+    alert('Bijnaam opgeslagen!');
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-24">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] pb-24 transition-colors duration-200">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-4 py-4 flex items-center justify-between">
-        <button className="flex items-center justify-center p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors">
-          <span className="material-icons-round text-2xl text-gray-600 dark:text-gray-300">arrow_back_ios_new</span>
-        </button>
-        <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">Instellingen</h1>
+      <header className="sticky top-0 z-10 bg-gray-50/80 dark:bg-[#0f172a]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-4 py-4 flex items-center justify-between transition-colors">
+        <div className="flex items-center gap-2">
+           <ChevronBack onClick={onBack} />
+           <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">Instellingen</h1>
+        </div>
         <div className="w-8"></div>
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        {/* Profile */}
-        <section className="p-6 flex flex-col items-center border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-surface-dark/30">
+        {/* Profile Header */}
+        <section className="p-6 flex flex-col items-center border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1e2330]/30 transition-colors">
           <div className="relative mb-4">
-            <div className="w-24 h-24 rounded-full border-4 border-primary/20 p-1">
-              <img src="https://i.pravatar.cc/150?u=jan" alt="Profile" className="w-full h-full rounded-full object-cover" />
+            <div className="w-24 h-24 rounded-full border-4 border-blue-100 dark:border-blue-900/50 p-1">
+              <img src={currentUser.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
             </div>
-            <button className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full shadow-lg border-2 border-background-light dark:border-background-dark">
+            <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full shadow-lg border-2 border-gray-50 dark:border-[#0f172a]">
               <span className="material-icons-round text-sm block">edit</span>
             </button>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Jan Janssens</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{currentUser.nickname || currentUser.name}</h2>
           <p className="text-gray-500 dark:text-gray-400 font-medium">KSA Sint-Jan</p>
         </section>
 
-        {/* Roles */}
+        {/* Profile Form */}
         <section className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3 px-1">Profiel</h3>
+          <div className="bg-white dark:bg-[#1e2330] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 transition-colors p-4 space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Naam (Niet aanpasbaar)</label>
+              <input 
+                type="text" 
+                value={currentUser.name} 
+                disabled 
+                className="w-full bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              />
+            </div>
+            <div>
+               <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Bijnaam</label>
+               <div className="flex gap-2">
+                 <input 
+                   type="text" 
+                   value={nickname} 
+                   onChange={(e) => setNickname(e.target.value)}
+                   placeholder="Kies een bijnaam..."
+                   className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                 />
+                 <button 
+                  onClick={handleSaveNickname}
+                  className="bg-blue-600 text-white px-4 rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors"
+                 >
+                   Opslaan
+                 </button>
+               </div>
+               <p className="text-[10px] text-gray-400 mt-1">Deze naam wordt getoond aan andere leiding.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Roles */}
+        <section className="p-4 pt-0">
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3 px-1">Jouw Rollen</h3>
           <div className="flex flex-wrap gap-2">
-            {[
-              { label: 'Hoofdleiding', color: 'text-primary bg-primary/10 border-primary/20', icon: 'star' },
-              { label: 'Team Drank', color: 'text-green-600 bg-green-500/10 border-green-500/20', icon: 'local_bar' },
-              { label: 'Kampcomité', color: 'text-amber-600 bg-amber-500/10 border-amber-500/20', icon: 'camping' }
-            ].map(role => (
-              <span key={role.label} className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold border ${role.color}`}>
-                <span className="material-icons-round text-lg mr-1.5">{role.icon}</span>
-                {role.label}
-              </span>
-            ))}
+            {currentUser.roles && currentUser.roles.length > 0 ? (
+                currentUser.roles.map(role => (
+                  <span key={role} className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold border text-blue-600 bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
+                    <span className="material-icons-round text-lg mr-1.5">verified</span>
+                    {role}
+                  </span>
+                ))
+            ) : (
+               <span className="text-sm text-gray-500 italic px-1">Geen speciale rollen toegewezen.</span>
+            )}
           </div>
         </section>
 
@@ -67,16 +117,16 @@ export const SettingsScreen: React.FC = () => {
         <section className="px-4 py-2 space-y-6">
           <div className="space-y-1">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 px-1">Voorkeuren</h3>
-            <div className="bg-white dark:bg-surface-dark rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
+            <div className="bg-white dark:bg-[#1e2330] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 transition-colors">
               {/* Dark Mode */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800/50">
                 <div className="flex items-center gap-3">
-                  <span className="material-icons-round text-primary">dark_mode</span>
+                  <span className="material-icons-round text-blue-600 dark:text-blue-500">dark_mode</span>
                   <span className="font-medium text-gray-900 dark:text-white">Donkere Weergave</span>
                 </div>
                 <button 
                   onClick={toggleDarkMode}
-                  className={`w-12 h-6 rounded-full relative transition-colors duration-200 ease-in-out focus:outline-none ${isDark ? 'bg-primary' : 'bg-gray-300'}`}
+                  className={`w-12 h-6 rounded-full relative transition-colors duration-200 ease-in-out focus:outline-none ${isDark ? 'bg-blue-600' : 'bg-gray-300'}`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${isDark ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
@@ -85,7 +135,7 @@ export const SettingsScreen: React.FC = () => {
                {/* Notifications */}
               <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="material-icons-round text-primary">notifications</span>
+                  <span className="material-icons-round text-blue-600 dark:text-blue-500">notifications</span>
                   <span className="font-medium text-gray-900 dark:text-white">Meldingen</span>
                 </div>
                 <span className="material-icons-round text-gray-400">chevron_right</span>

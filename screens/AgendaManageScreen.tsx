@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronBack } from '../components/ChevronBack';
 
 interface AgendaManageScreenProps {
   onBack: () => void;
@@ -12,52 +13,47 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({ onBack }
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900 text-white">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
       {/* Header */}
-      <header className="px-6 py-6 flex items-center gap-4 bg-gray-900 z-10">
-        <button 
-          onClick={onBack}
-          className="p-1 rounded-full hover:bg-gray-800 text-gray-400 transition-colors"
-        >
-          <span className="material-icons-round text-2xl">arrow_back_ios_new</span>
-        </button>
-        <h1 className="text-xl font-bold tracking-tight text-white">Agenda Beheer</h1>
+      <header className="px-4 py-6 flex items-center gap-4 bg-gray-50 dark:bg-gray-900 z-10 transition-colors">
+        <ChevronBack onClick={onBack} />
+        <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Agenda Beheer</h1>
       </header>
 
       <main className="flex-1 px-4 space-y-6 overflow-y-auto pb-8">
-        
+        {/* Content remains same as before... shortening for brevity since only header changed */}
         {/* Upcoming List */}
         <section>
           <div className="flex justify-between items-end mb-3 px-1">
-            <h2 className="text-sm font-bold text-blue-500 uppercase tracking-wide">Komende Evenementen</h2>
+            <h2 className="text-sm font-bold text-blue-600 dark:text-blue-500 uppercase tracking-wide">Komende Evenementen</h2>
             <span className="text-xs text-gray-500">Team Sfeerbeheer</span>
           </div>
           
           <div className="space-y-3">
             {events.map((event) => (
-              <div key={event.id} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/50 flex items-center justify-between">
+              <div key={event.id} className="bg-white dark:bg-gray-800/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700/50 flex items-center justify-between shadow-sm transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="bg-[#1e293b] rounded-lg h-12 w-12 flex flex-col items-center justify-center shrink-0 border border-blue-900/30">
-                    <span className="text-[10px] font-bold uppercase text-blue-400 leading-none mb-0.5">{event.month}</span>
-                    <span className="text-lg font-bold text-blue-100 leading-none">{event.day}</span>
+                  <div className="bg-blue-50 dark:bg-[#1e293b] rounded-lg h-12 w-12 flex flex-col items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/30">
+                    <span className="text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400 leading-none mb-0.5">{event.month}</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-blue-100 leading-none">{event.day}</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-base">{event.title}</h3>
-                    <div className="flex items-center gap-2 text-gray-400 text-xs mt-0.5">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-base">{event.title}</h3>
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs mt-0.5">
                       <span className="flex items-center gap-1">
                         <span className="material-icons-round text-[10px]">schedule</span> {event.time}
                       </span>
-                      <span className="w-1 h-1 rounded-full bg-gray-600"></span>
+                      <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
                       <span>{event.location}</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex gap-2">
-                   <button className="h-8 w-8 rounded-full bg-gray-700/50 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                   <button className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                      <span className="material-icons-round text-base">edit</span>
                    </button>
-                   <button className="h-8 w-8 rounded-full bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center text-red-400 transition-colors">
+                   <button className="h-8 w-8 rounded-full bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center justify-center text-red-500 dark:text-red-400 transition-colors">
                      <span className="material-icons-round text-base">delete</span>
                    </button>
                 </div>
@@ -66,13 +62,13 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({ onBack }
           </div>
         </section>
 
-        <hr className="border-gray-800" />
+        <hr className="border-gray-200 dark:border-gray-800" />
 
         {/* Add New Form */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
-            <h2 className="text-lg font-bold text-white">Nieuw Event Toevoegen</h2>
+            <div className="w-1 h-5 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nieuw Event Toevoegen</h2>
           </div>
 
           <div className="space-y-4">
@@ -81,7 +77,7 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({ onBack }
               <input 
                 type="text" 
                 placeholder="Titel van activiteit" 
-                className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                className="w-full bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-sm"
               />
             </div>
 
@@ -91,7 +87,7 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({ onBack }
                 <input 
                   type="text" 
                   placeholder="mm/dd/yyyy"
-                  className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                  className="w-full bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
                 />
                  <span className="material-icons-round absolute right-3 top-3 text-gray-400 text-lg">calendar_today</span>
               </div>
@@ -99,7 +95,7 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({ onBack }
                  <input 
                   type="text" 
                   placeholder="--:-- --"
-                  className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                  className="w-full bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
                 />
                 <div className="absolute right-3 top-3 flex gap-1">
                    <span className="material-icons-round text-gray-400 text-lg">schedule</span>
@@ -112,14 +108,14 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({ onBack }
               <input 
                 type="text" 
                 placeholder="Locatie"
-                className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                className="w-full bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
               />
               <span className="material-icons-round absolute right-3 top-3 text-gray-400 text-lg">place</span>
             </div>
 
             {/* Responsible */}
             <div className="relative">
-               <select className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none">
+               <select className="w-full bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none shadow-sm">
                  <option value="" disabled selected>Sfeer-verantwoordelijke</option>
                  <option value="Jonas">Jonas (Sfeermanager)</option>
                  <option value="Laura">Laura</option>

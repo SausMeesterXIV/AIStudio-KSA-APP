@@ -1,21 +1,26 @@
 import React from 'react';
+import { getCurrentUser } from '../lib/data';
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
+  balance: number;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) => {
+  const currentUser = getCurrentUser();
+  const displayName = currentUser.nickname || currentUser.name.split(' ')[0];
+
   return (
     <div className="flex flex-col min-h-screen pb-24">
       {/* Header */}
       <header className="px-6 py-6 flex justify-between items-center bg-surface-light dark:bg-surface-dark shadow-sm sticky top-0 z-40">
         <div className="flex flex-col">
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Welkom, Leider</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Welkom, {displayName}</span>
           <h1 className="text-2xl font-bold text-primary dark:text-blue-500">KSA Startscherm</h1>
         </div>
         <div className="h-10 w-10 rounded-full border-2 border-primary overflow-hidden">
           <img 
-            src="https://i.pravatar.cc/150?u=jan" 
+            src={currentUser.avatar} 
             alt="Profile" 
             className="h-full w-full object-cover"
           />
@@ -24,22 +29,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
       <main className="flex-1 px-4 py-6 space-y-8">
         
-        {/* Balance Card */}
-        <section className="bg-surface-light dark:bg-surface-dark p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-          <div className="flex justify-between items-start mb-2">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+        {/* Balance Card - Now Clickable */}
+        <section 
+          onClick={() => onNavigate('my-invoice')}
+          className="bg-surface-light dark:bg-surface-dark p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:shadow-md transition-shadow group relative overflow-hidden"
+        >
+          <div className="flex justify-between items-start mb-2 relative z-10">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2 group-hover:text-primary dark:group-hover:text-blue-400 transition-colors">
               <span className="material-icons-round text-primary">receipt_long</span>
               Voorlopige Rekening
             </h2>
             <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-1 rounded-lg font-medium">Actief</span>
           </div>
-          <div className="flex items-baseline gap-1 my-3">
-            <span className="text-4xl font-bold text-primary dark:text-blue-400">€ 14,50</span>
+          <div className="flex items-baseline gap-1 my-3 relative z-10">
+            <span className="text-4xl font-bold text-primary dark:text-blue-400">€ {balance.toFixed(2).replace('.', ',')}</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden mb-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden mb-2 relative z-10">
             <div className="bg-primary dark:bg-blue-500 h-full w-3/4 rounded-full"></div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Huidige maand limiet: € 20,00</p>
+          <div className="flex justify-between items-center relative z-10">
+             <p className="text-xs text-gray-500 dark:text-gray-400">Huidige maand limiet: € 20,00</p>
+             <span className="text-xs font-bold text-primary dark:text-blue-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+               Details <span className="material-icons-round text-xs">arrow_forward</span>
+             </span>
+          </div>
         </section>
 
         {/* PRIMARY USER ACTIONS (Moved to Top) */}
@@ -67,18 +80,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           {/* Frieten Module */}
           <div 
             onClick={() => onNavigate('frieten')}
-            className="col-span-2 sm:col-span-1 bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow cursor-pointer"
+            className="col-span-2 sm:col-span-1 bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow cursor-pointer group"
           >
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-yellow-600 dark:text-yellow-400">
                 <span className="material-icons-round">fastfood</span>
               </div>
               <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Frieten</h3>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Bestellingen voor vrijdagavond beheren.</p>
-            <button className="w-full py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors text-center text-gray-700 dark:text-gray-300">
-              Openen
-            </button>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group-hover:bg-yellow-50 dark:group-hover:bg-gray-700 transition-colors">
+                <span className="text-gray-700 dark:text-gray-300">Bestelling plaatsen</span>
+                <span className="material-icons-round text-xs text-gray-400">arrow_forward_ios</span>
+              </div>
+            </div>
           </div>
         </div>
 

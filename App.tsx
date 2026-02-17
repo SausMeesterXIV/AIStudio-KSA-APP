@@ -16,11 +16,44 @@ import { TeamDrankInvoicesScreen } from './screens/TeamDrankInvoicesScreen';
 import { NudgeSelectorScreen } from './screens/NudgeSelectorScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NewMessageScreen } from './screens/NewMessageScreen';
+import { MyInvoiceScreen } from './screens/MyInvoiceScreen';
+import { Order, CartItem } from './types';
+import { getCurrentUser } from './lib/data';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [currentScreen, setCurrentScreen] = useState('home');
   const [previousScreen, setPreviousScreen] = useState('home');
+  
+  // Centralized balance state (starts at 25.00 like on Home/Invoice screens)
+  const [balance, setBalance] = useState(25.00);
+
+  // Centralized Fry Orders State
+  const [friesOrders, setFriesOrders] = useState<Order[]>([]);
+
+  const handleAddCost = (amount: number) => {
+    setBalance(prev => prev + amount);
+  };
+
+  const handlePlaceFryOrder = (items: CartItem[], totalCost: number) => {
+    const currentUser = getCurrentUser();
+    
+    // 1. Add cost to provisional balance
+    handleAddCost(totalCost);
+
+    // 2. Add order to global list
+    const newOrder: Order = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: currentUser.id,
+      userName: currentUser.name,
+      items: items,
+      totalPrice: totalCost,
+      date: new Date(),
+      status: 'pending'
+    };
+
+    setFriesOrders(prev => [newOrder, ...prev]);
+  };
 
   // Handle Tab Navigation
   const handleTabChange = (tabId: string) => {
@@ -32,7 +65,7 @@ const App: React.FC = () => {
   // Handle Internal Routing (from Home dashboard)
   const handleInternalNavigate = (screenId: string) => {
     // Save previous screen for back navigation from sub-screens
-    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices'].includes(screenId)) {
+    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice'].includes(screenId)) {
       setPreviousScreen(currentScreen);
     }
     
@@ -53,7 +86,8 @@ const App: React.FC = () => {
         'team-drank-dashboard',
         'team-drank-stock',
         'team-drank-billing',
-        'team-drank-invoices'
+        'team-drank-invoices',
+        'my-invoice'
       ];
       
       if (subModules.includes(screenId)) {
@@ -69,50 +103,72 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
+  const handleBackToHome = () => {
+    handleInternalNavigate('home');
+  };
+
   const renderScreen = () => {
+    const currentUser = getCurrentUser();
+
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen onNavigate={handleInternalNavigate} />;
+        return <HomeScreen onNavigate={handleInternalNavigate} balance={balance} />;
       case 'strepen':
         return <StrepenScreen 
           onNavigateOverview={() => handleInternalNavigate('strepen-overview')} 
           onNavigateNudge={() => handleInternalNavigate('nudge-selector')}
+          onNavigateInvoice={() => handleInternalNavigate('my-invoice')}
+          onBack={handleBackToHome}
+          currentBalance={balance}
+          onAddCost={handleAddCost}
         />;
       case 'strepen-overview':
         return <ConsumptionOverviewScreen onBack={() => handleInternalNavigate(previousScreen)} />;
       case 'nudge-selector':
         return <NudgeSelectorScreen onBack={() => handleInternalNavigate(previousScreen)} />;
+      case 'my-invoice':
+        return <MyInvoiceScreen onBack={handleBackToHome} balance={balance} />;
       
       case 'notifications':
-        return <NotificationsScreen />;
+        return <NotificationsScreen onBack={handleBackToHome} />;
       case 'new-message':
         return <NewMessageScreen onBack={() => handleInternalNavigate(previousScreen)} />;
 
       case 'frieten':
-        return <FriesScreen onNavigateOverview={() => handleInternalNavigate('fries-overview')} />;
+        // Filter orders for current user history
+        const myOrders = friesOrders.filter(o => o.userId === currentUser.id);
+        return <FriesScreen 
+          onNavigateOverview={() => handleInternalNavigate('fries-overview')} 
+          onBack={handleBackToHome} 
+          onPlaceOrder={handlePlaceFryOrder}
+          myOrders={myOrders}
+        />;
       case 'fries-overview':
-        return <FriesOverviewScreen onBack={() => handleInternalNavigate('frieten')} />;
+        return <FriesOverviewScreen 
+          onBack={() => handleInternalNavigate('frieten')} 
+          orders={friesOrders}
+        />;
       case 'roles-manage':
-        return <RolesManageScreen onBack={() => handleInternalNavigate('home')} />;
+        return <RolesManageScreen onBack={handleBackToHome} />;
       
       // Team Drank Screens
       case 'team-drank-dashboard':
-        return <TeamDrankDashboardScreen onBack={() => handleInternalNavigate('home')} />;
+        return <TeamDrankDashboardScreen onBack={handleBackToHome} />;
       case 'team-drank-stock':
-        return <TeamDrankStockScreen onBack={() => handleInternalNavigate('home')} />;
+        return <TeamDrankStockScreen onBack={handleBackToHome} />;
       case 'team-drank-billing':
-        return <TeamDrankBillingScreen onBack={() => handleInternalNavigate('home')} />;
+        return <TeamDrankBillingScreen onBack={handleBackToHome} />;
       case 'team-drank-invoices':
-        return <TeamDrankInvoicesScreen onBack={() => handleInternalNavigate('home')} />;
+        return <TeamDrankInvoicesScreen onBack={handleBackToHome} />;
         
       case 'agenda':
-        return <AgendaScreen />;
+        return <AgendaScreen onBack={handleBackToHome} />;
       case 'settings':
-        return <SettingsScreen />;
+        return <SettingsScreen onBack={handleBackToHome} />;
       case 'agenda-manage':
-        return <AgendaManageScreen onBack={() => handleInternalNavigate('home')} />;
+        return <AgendaManageScreen onBack={handleBackToHome} />;
       default:
-        return <HomeScreen onNavigate={handleInternalNavigate} />;
+        return <HomeScreen onNavigate={handleInternalNavigate} balance={balance} />;
     }
   };
 
@@ -120,7 +176,7 @@ const App: React.FC = () => {
     <div className="text-base">
       {renderScreen()}
       {/* Hide bottom nav on full screen modals */}
-      {!['agenda-manage', 'fries-overview', 'strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices'].includes(currentScreen) && (
+      {!['agenda-manage', 'fries-overview', 'strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice'].includes(currentScreen) && (
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       )}
     </div>

@@ -1,16 +1,22 @@
+
 export interface User {
   id: string;
   name: string;
-  role: string;
+  nickname?: string; // New field for display name
+  role: string; // Display role e.g. "Hoofdleiding"
   avatar: string;
   balance: number;
+  roles: string[]; // Functional roles e.g. ["Drank", "Financiën"]
+  status?: 'online' | 'offline';
 }
 
 export interface Drink {
-  id: string;
+  id: string | number;
   name: string;
   price: number;
-  icon: string;
+  icon?: string; // Icon is now optional
+  isTemporary?: boolean;
+  validUntil?: string; // ISO date string
 }
 
 export interface FryItem {
@@ -23,6 +29,16 @@ export interface FryItem {
 
 export interface CartItem extends FryItem {
   quantity: number;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  userName: string;
+  items: CartItem[];
+  totalPrice: number;
+  date: Date;
+  status: 'pending' | 'completed';
 }
 
 export interface Event {
