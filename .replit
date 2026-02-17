@@ -1,9 +1,12 @@
 modules = ["nodejs-20", "web"]
+run = "npm run dev"
+
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
+packages = ["run", "cargo-dist"]
 
 [workflows]
 runButton = "Project"
@@ -24,11 +27,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5000
+waitForPort = 3000
 
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[deployment]
+deploymentTarget = "cloudrun"
+publicDir = "dist"
+build = ["sh", "-c", "npm run build"]
+run = ["sh", "-c", "npm run preview"]
+
 [[ports]]
-localPort = 5000
+localPort = 3000
 externalPort = 80
