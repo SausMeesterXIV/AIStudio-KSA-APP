@@ -164,8 +164,44 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
     setValidUntil(nextWeek.toISOString().split('T')[0]);
   };
 
+  // Helper to calculate the start of the current week (Saturday 08:00)
+  const getResetDateString = () => {
+    const now = new Date();
+    const day = now.getDay(); // 0 (Sun) - 6 (Sat)
+    const hour = now.getHours();
+    
+    const lastSaturday = new Date(now);
+    
+    // Logic: 
+    // If today is Saturday (6) AND hour >= 8, then "last Saturday 8am" is today.
+    // If today is Saturday (6) AND hour < 8, then it's last week Saturday (-7 days).
+    // If today is Sunday (0), it is -1 day.
+    // If today is Friday (5), it is -6 days.
+    
+    let daysToSubtract = 0;
+    if (day === 6 && hour >= 8) {
+        daysToSubtract = 0;
+    } else {
+        // (day + 1) maps Sun(0)->1 ... Fri(5)->6
+        daysToSubtract = day + 1;
+    }
+    
+    lastSaturday.setDate(now.getDate() - daysToSubtract);
+    lastSaturday.setHours(8, 0, 0, 0);
+    
+    return lastSaturday.toLocaleDateString('nl-BE', { 
+      weekday: 'short', 
+      day: 'numeric', 
+      month: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const resetDateStr = getResetDateString();
+
   // Generate Leaderboard based on MOCK_USERS
-  // In a real app, this would come from a query aggregation
+  // In a real app, this would come from a query aggregation where timestamp >= resetDate
   const leaderboard = MOCK_USERS.map((user, index) => ({
     id: user.id,
     name: user.nickname || user.name, // Use nickname if available
@@ -439,10 +475,13 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
         {/* Top 10 Leaderboard Section */}
         <section>
           <div className="flex items-center justify-between mb-3 mt-2">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <span className="material-icons-round text-amber-500">emoji_events</span>
-              Top 10 Bier
-            </h2>
+            <div>
+               <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                 <span className="material-icons-round text-amber-500">emoji_events</span>
+                 Top 10 Bier van deze week
+               </h2>
+               <p className="text-[10px] text-gray-400 font-medium ml-8 mt-0.5">Sinds {resetDateStr}</p>
+            </div>
             <button 
               onClick={onNavigateOverview}
               className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline"
