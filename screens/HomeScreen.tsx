@@ -47,11 +47,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
           <div className="flex items-baseline gap-1 my-3 relative z-10">
             <span className="text-4xl font-bold text-primary dark:text-blue-400">€ {balance.toFixed(2).replace('.', ',')}</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden mb-2 relative z-10">
-            <div className="bg-primary dark:bg-blue-500 h-full w-3/4 rounded-full"></div>
-          </div>
-          <div className="flex justify-between items-center relative z-10">
-             <p className="text-xs text-gray-500 dark:text-gray-400">Huidige maand limiet: € 20,00</p>
+          
+          <div className="flex justify-end items-center relative z-10 mt-2">
              <span className="text-xs font-bold text-primary dark:text-blue-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                Details <span className="material-icons-round text-xs">arrow_forward</span>
              </span>

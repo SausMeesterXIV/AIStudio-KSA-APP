@@ -332,11 +332,18 @@ const App: React.FC = () => {
         return <TeamDrankInvoicesScreen onBack={handleBackToHome} />;
         
       case 'agenda':
-        return <AgendaScreen onBack={handleBackToHome} />;
+        return <AgendaScreen 
+          onBack={handleBackToHome} 
+          notifications={notifications}
+          onMarkAsRead={handleMarkNotificationAsRead}
+        />;
       case 'settings':
         return <SettingsScreen onBack={handleBackToHome} />;
       case 'agenda-manage':
-        return <AgendaManageScreen onBack={handleBackToHome} />;
+        return <AgendaManageScreen 
+          onBack={handleBackToHome} 
+          onAddNotification={handleAddNotification}
+        />;
       default:
         return <HomeScreen onNavigate={handleInternalNavigate} balance={balance} />;
     }

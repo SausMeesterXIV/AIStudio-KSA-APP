@@ -349,7 +349,9 @@ export const FriesScreen: React.FC<FriesScreenProps> = ({
                     {sessionStatus === 'open' ? 'Bestellingen Open' : (sessionStatus === 'completed' ? 'Bestellingen Afgerond' : 'Nog niet gestart')}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {sessionStatus === 'open' ? 'Iedereen kan nu bestellen.' : 'Er kan niet meer besteld worden.'}
+                    {sessionStatus === 'open' 
+                        ? 'Iedereen kan nu bestellen.' 
+                        : (sessionStatus === 'closed' ? 'Je kan nog niet bestellen.' : 'Er kan niet meer besteld worden.')}
                 </p>
                 </div>
             </div>
