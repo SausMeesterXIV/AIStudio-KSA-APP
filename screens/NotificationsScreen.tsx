@@ -1,93 +1,25 @@
 import React, { useState } from 'react';
 import { ChevronBack } from '../components/ChevronBack';
+import { Notification } from '../types';
 
 interface NotificationsScreenProps {
   onBack: () => void;
+  notifications: Notification[];
+  onMarkAsRead: (id: number) => void;
 }
 
-export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack }) => {
+export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ 
+  onBack, 
+  notifications,
+  onMarkAsRead
+}) => {
   const [filter, setFilter] = useState<'Alles' | 'Nudges' | 'Officieel'>('Alles');
-
-  // Initial data moved to state to allow updates
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'official',
-      sender: 'Hoofdleiding',
-      role: 'ADMIN',
-      title: 'Openstaande Drankrekening',
-      content: 'Betaal a.u.b. je drankrekening van € 25,00 voor de maand oktober.',
-      time: '2u geleden',
-      isRead: false,
-      action: '',
-      icon: 'security',
-      color: 'bg-blue-100 dark:bg-blue-600/20 text-blue-600 dark:text-blue-500'
-    },
-    {
-      id: 2,
-      type: 'nudge',
-      sender: 'Anonieme Nudge',
-      role: '',
-      title: '',
-      content: '"Heb je wel genoeg gestreept gisterenavond?" 👀',
-      time: '4u geleden',
-      isRead: false,
-      action: '',
-      icon: 'sentiment_dissatisfied',
-      color: 'bg-purple-100 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400'
-    },
-    {
-      id: 3,
-      type: 'agenda',
-      sender: 'Agenda Update',
-      role: '',
-      title: '',
-      content: 'Vergadering leiding start over 15 minuten in lokaal 3.',
-      time: '5u geleden',
-      isRead: true,
-      action: '',
-      icon: 'event',
-      color: 'bg-green-100 dark:bg-green-600/20 text-green-600 dark:text-green-500'
-    },
-    {
-      id: 4,
-      type: 'nudge',
-      sender: 'Anonieme Nudge',
-      role: '',
-      title: '',
-      content: 'Vergeet het lokaal niet te vegen na de activiteit!',
-      time: 'Gisteren, 18:30',
-      isRead: true,
-      action: '',
-      icon: 'cleaning_services',
-      color: 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400'
-    },
-    {
-      id: 5,
-      type: 'official',
-      sender: 'Hoofdleiding',
-      role: '',
-      title: 'Inschrijvingen Geopend',
-      content: 'De inschrijvingen voor het weekend staan open.',
-      time: 'Gisteren, 10:00',
-      isRead: true,
-      action: '',
-      icon: 'assignment',
-      color: 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400'
-    }
-  ]);
-
-  const markAsRead = (id: number) => {
-    setNotifications(prev => prev.map(notification => 
-      notification.id === id ? { ...notification, isRead: true } : notification
-    ));
-  };
 
   const filteredData = filter === 'Alles' 
     ? notifications 
     : filter === 'Nudges' 
       ? notifications.filter(n => n.type === 'nudge')
-      : notifications.filter(n => n.type === 'official' || n.type === 'agenda');
+      : notifications.filter(n => n.type === 'official' || n.type === 'agenda' || n.type === 'order');
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-white transition-colors duration-200">
@@ -123,13 +55,22 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack
         <div>
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Vandaag</h2>
           <div className="space-y-3">
-            {filteredData.filter(n => !n.time.includes('Gisteren')).map(notification => (
+            {filteredData.filter(n => !n.time.includes('Gisteren') && !n.time.includes('u geleden')).map(notification => (
+               <NotificationCard 
+                 key={notification.id} 
+                 data={notification} 
+                 onClick={() => onMarkAsRead(notification.id)}
+               />
+             ))}
+             {/* Include 'Zonet' and recent hours here too */}
+             {filteredData.filter(n => n.time === 'Zonet' || n.time.includes('u geleden')).map(notification => (
               <NotificationCard 
                 key={notification.id} 
                 data={notification} 
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => onMarkAsRead(notification.id)}
               />
             ))}
+
              {filteredData.filter(n => !n.time.includes('Gisteren')).length === 0 && (
               <p className="text-gray-500 text-sm px-2 italic">Geen meldingen vandaag.</p>
             )}
@@ -144,7 +85,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack
               <NotificationCard 
                 key={notification.id} 
                 data={notification} 
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => onMarkAsRead(notification.id)}
               />
             ))}
           </div>
@@ -155,7 +96,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack
   );
 };
 
-const NotificationCard = ({ data, onClick }: { data: any, onClick: () => void }) => (
+const NotificationCard = ({ data, onClick }: { data: Notification, onClick: () => void }) => (
   <div 
     onClick={onClick}
     className={`p-4 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] ${data.isRead ? 'bg-white dark:bg-[#1e293b]/50 border-gray-100 dark:border-gray-800' : 'bg-white dark:bg-[#1e293b] border-blue-200 dark:border-blue-900/50 shadow-sm dark:shadow-md ring-1 ring-blue-50 dark:ring-blue-900/20'}`}

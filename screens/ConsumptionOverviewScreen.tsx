@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MOCK_USERS } from '../lib/data';
 
 interface ConsumptionOverviewScreenProps {
@@ -9,47 +9,80 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
   // Sort state
   const [sortOption, setSortOption] = useState<'alphabetical' | 'BIER' | 'COLA' | 'WATER' | 'CHIPS'>('alphabetical');
   const [showSortMenu, setShowSortMenu] = useState(false);
-
-  // Use MOCK_USERS to generate table data
-  const columns = ['NAAM', 'BIER', 'COLA', 'WATER', 'CHIPS'];
   
-  // Transform MOCK_USERS into table data
-  const initialData = MOCK_USERS.map(user => ({
-    name: user.nickname || user.name, // Use nickname if available
-    values: [
-      Math.floor(Math.random() * 15), // Bier
-      Math.floor(Math.random() * 8),  // Cola
-      Math.floor(Math.random() * 5),  // Water
-      Math.floor(Math.random() * 4)   // Chips
-    ]
-  }));
+  // Date State
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Calculate totals from the generated data
-  const totals = initialData.reduce((acc, row) => {
-    return acc.map((total, idx) => total + row.values[idx]);
-  }, [0, 0, 0, 0]);
-
-  // Logic to sort data
-  const getSortedData = () => {
-    const data = [...initialData];
-    if (sortOption === 'alphabetical') {
-      return data.sort((a, b) => a.name.localeCompare(b.name));
-    } else {
-      // Find index of column in columns array (index 0 is NAAM, so -1 to match values array)
-      const colIndex = columns.indexOf(sortOption) - 1;
-      if (colIndex >= 0) {
-        return data.sort((a, b) => b.values[colIndex] - a.values[colIndex]);
-      }
-      return data;
-    }
+  // Date Helpers
+  const getWeekNumber = (d: Date) => {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
   };
 
-  const sortedData = getSortedData();
+  const getWeekRange = (date: Date) => {
+    const start = new Date(date);
+    const day = start.getDay();
+    const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is sunday
+    start.setDate(diff);
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+    return `${start.toLocaleDateString('nl-BE', options)} - ${end.toLocaleDateString('nl-BE', options)}`;
+  };
+
+  const changeWeek = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
+    setCurrentDate(newDate);
+  };
+
+  // Use MOCK_USERS to generate table data
+  // Wrapped in useMemo with currentDate dependency to simulate "fetching new data" for different weeks
+  const { sortedData, totals } = useMemo(() => {
+    const columns = ['NAAM', 'BIER', 'COLA', 'WATER', 'CHIPS'];
+    
+    // Transform MOCK_USERS into table data with slight randomization based on week to simulate changing data
+    const weekNum = getWeekNumber(currentDate);
+    
+    const initialData = MOCK_USERS.map((user, idx) => ({
+      name: user.nickname || user.name, 
+      values: [
+        Math.max(0, Math.floor(Math.random() * 15) + (weekNum % 2 === 0 ? -2 : 2)), // Bier variation
+        Math.max(0, Math.floor(Math.random() * 8)),  // Cola
+        Math.max(0, Math.floor(Math.random() * 5)),  // Water
+        Math.max(0, Math.floor(Math.random() * 4))   // Chips
+      ]
+    }));
+
+    // Calculate totals
+    const calculatedTotals = initialData.reduce((acc, row) => {
+      return acc.map((total, idx) => total + row.values[idx]);
+    }, [0, 0, 0, 0]);
+
+    // Sort Logic
+    let data = [...initialData];
+    if (sortOption === 'alphabetical') {
+      data = data.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      const colIndex = columns.indexOf(sortOption) - 1;
+      if (colIndex >= 0) {
+        data = data.sort((a, b) => b.values[colIndex] - a.values[colIndex]);
+      }
+    }
+
+    return { sortedData: data, totals: calculatedTotals };
+  }, [sortOption, currentDate]);
+
+  const columns = ['NAAM', 'BIER', 'COLA', 'WATER', 'CHIPS'];
 
   return (
     <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark relative">
       {/* Header */}
-      <header className="bg-primary text-white pt-8 pb-10 px-6 rounded-b-[2.5rem] shadow-lg relative z-10">
+      <header className="bg-primary text-white pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 transition-all">
         <div className="flex justify-between items-center mb-4">
           <button 
             onClick={onBack}
@@ -64,23 +97,31 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
             <span className="material-icons-round text-2xl">sort</span>
           </button>
         </div>
-        <div>
+        <div className="pb-2">
           <h1 className="text-2xl font-bold mb-1">Consumptieoverzicht</h1>
           <p className="text-blue-100 text-sm font-medium">Leidingsgroep Totaal</p>
         </div>
       </header>
 
-      <main className="flex-1 px-4 -mt-6 pb-6 overflow-hidden flex flex-col">
+      <main className="flex-1 px-4 -mt-8 pb-6 overflow-hidden flex flex-col z-20">
         {/* Date Selector Card */}
-        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-md p-4 flex items-center justify-between mb-4 mx-2">
-          <button className="p-2 text-primary dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 px-4 py-5 flex items-center justify-between mb-4 mx-2 transition-colors">
+          <button 
+            onClick={() => changeWeek('prev')}
+            className="p-3 text-primary dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors active:scale-95"
+          >
             <span className="material-icons-round">chevron_left</span>
           </button>
-          <div className="text-center">
-            <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-0.5">Week 42</p>
-            <p className="text-gray-900 dark:text-white font-bold">16 okt - 22 okt</p>
+          
+          <div className="text-center flex flex-col gap-1">
+            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Week {getWeekNumber(currentDate)}</p>
+            <p className="text-gray-900 dark:text-white font-bold text-lg leading-none">{getWeekRange(currentDate)}</p>
           </div>
-          <button className="p-2 text-primary dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+          
+          <button 
+            onClick={() => changeWeek('next')}
+            className="p-3 text-primary dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors active:scale-95"
+          >
             <span className="material-icons-round">chevron_right</span>
           </button>
         </div>
@@ -88,13 +129,13 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
         {/* Active Sort Indicator */}
         <div className="mx-2 mb-2 px-2 flex items-center gap-2">
           <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Gesorteerd op:</span>
-          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-semibold">
+          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-semibold truncate">
             {sortOption === 'alphabetical' ? 'Naam (A-Z)' : sortOption}
           </span>
         </div>
 
         {/* Table Container */}
-        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex-1 overflow-hidden flex flex-col mx-2">
+        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex-1 overflow-hidden flex flex-col mx-2 transition-colors">
           <div className="overflow-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">

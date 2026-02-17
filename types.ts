@@ -62,3 +62,17 @@ export interface Transaction {
   timestamp: string;
   details: string;
 }
+
+export interface Notification {
+  id: number;
+  type: 'official' | 'nudge' | 'agenda' | 'order';
+  sender: string;
+  role: string;
+  title: string;
+  content: string;
+  time: string;
+  isRead: boolean;
+  action: string;
+  icon: string;
+  color: string;
+}

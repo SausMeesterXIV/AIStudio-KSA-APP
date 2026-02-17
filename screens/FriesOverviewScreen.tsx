@@ -1,20 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { Order } from '../types';
+import { Order, Notification } from '../types';
 
 interface FriesOverviewScreenProps {
   onBack: () => void;
   orders: Order[];
+  sessionStatus: 'open' | 'closed' | 'completed' | 'ordering' | 'ordered';
+  onSessionChange: (status: 'open' | 'closed' | 'completed' | 'ordering' | 'ordered') => void;
+  pickupTime: string | null;
+  onSetPickupTime: (time: string | null) => void;
+  onArchiveSession: () => void;
+  onAddNotification: (notification: Omit<Notification, 'id'>) => void;
 }
 
-export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack, orders }) => {
+export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ 
+  onBack, 
+  orders,
+  sessionStatus,
+  onSessionChange,
+  pickupTime,
+  onSetPickupTime,
+  onArchiveSession,
+  onAddNotification
+}) => {
   const [activeTab, setActiveTab] = useState<'Alles' | 'Frieten' | 'Snacks' | 'Sauzen'>('Alles');
   const [aggregatedItems, setAggregatedItems] = useState<any[]>([]);
+  const [showReopenConfirmation, setShowReopenConfirmation] = useState(false);
+  const [showTimeInput, setShowTimeInput] = useState(false);
+  
+  // Time input state (default to now + 30m if not set)
+  const [tempPickupTime, setTempPickupTime] = useState('');
 
-  // Aggregate items from all orders
+  // Filter only ACTIVE orders (pending) for the calculation
+  const activeOrders = orders.filter(o => o.status === 'pending');
+
   useEffect(() => {
-    const itemMap = new Map<string, { id: string, name: string, count: number, price: number, category: string, checked: boolean }>();
+     if (pickupTime) {
+         setTempPickupTime(pickupTime);
+     } else {
+         const now = new Date();
+         now.setMinutes(now.getMinutes() + 30);
+         setTempPickupTime(now.toTimeString().slice(0, 5));
+     }
+  }, [pickupTime]);
 
-    orders.forEach(order => {
+  // Aggregate items from all ACTIVE orders
+  useEffect(() => {
+    const itemMap = new Map<string, { id: string, name: string, count: number, price: number, category: string }>();
+
+    activeOrders.forEach(order => {
       order.items.forEach(item => {
         const key = item.id; // Group by Item ID
         if (itemMap.has(key)) {
@@ -28,14 +61,24 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack
             count: item.quantity,
             price: item.price * item.quantity,
             category: capitalize(item.category),
-            checked: false
           });
         }
       });
     });
 
     setAggregatedItems(Array.from(itemMap.values()));
-  }, [orders]);
+  }, [orders]); // Re-run when orders change
+
+  // Reset confirmation state if session status changes
+  useEffect(() => {
+    if (sessionStatus !== 'completed') {
+        setShowReopenConfirmation(false);
+    }
+    // Hide time input if we move out of ordering state without setting it
+    if (sessionStatus !== 'ordering') {
+        setShowTimeInput(false);
+    }
+  }, [sessionStatus]);
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -45,8 +88,63 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack
 
   const totalAmount = aggregatedItems.reduce((acc, item) => acc + item.price, 0);
 
-  const toggleCheck = (id: string) => {
-    setAggregatedItems(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
+  const handleFooterAction = () => {
+    if (sessionStatus === 'open') {
+        // Closing the session -> Review Mode
+        onSessionChange('completed');
+    } else if (sessionStatus === 'completed') {
+        // Here we can either Reopen OR go to "Aan het bestellen"
+        // This function handles the Reopen button click
+        if (showReopenConfirmation) {
+            onSessionChange('open');
+            setShowReopenConfirmation(false);
+        } else {
+            setShowReopenConfirmation(true);
+        }
+    } else if (sessionStatus === 'closed') {
+        // Starting the session (if closed)
+        onSessionChange('open');
+    }
+  };
+
+  const startOrderingProcess = () => {
+    // Lock the session, no reopening allowed after this
+    onSessionChange('ordering');
+  };
+
+  const handleMarkOrdered = () => {
+      // Show Time Input
+      setShowTimeInput(true);
+  };
+
+  const confirmTime = () => {
+      onSetPickupTime(tempPickupTime);
+      onSessionChange('ordered');
+      
+      // Send notification to all
+      onAddNotification({
+          type: 'order',
+          sender: 'Friet Verantwoordelijke',
+          role: 'ADMIN',
+          title: 'Frieten Besteld! 🍟',
+          content: `De bestelling is doorgegeven. Jullie mogen de frieten gaan afhalen om ${tempPickupTime}.`,
+          time: 'Zonet',
+          isRead: false,
+          action: '',
+          icon: 'fastfood',
+          color: 'bg-yellow-100 dark:bg-yellow-600/20 text-yellow-600 dark:text-yellow-500'
+      });
+
+      setShowTimeInput(false);
+  };
+
+  // Status Text Helper
+  const getStatusLabel = () => {
+      if (sessionStatus === 'open') return 'Verzamelen';
+      if (sessionStatus === 'completed') return 'Afgerond (Review)';
+      if (sessionStatus === 'ordering') return 'Aan het bestellen...';
+      if (sessionStatus === 'ordered') return 'Besteld';
+      return 'Niet gestart';
   };
 
   return (
@@ -59,7 +157,7 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack
           </button>
           <div>
             <h1 className="text-lg font-bold leading-tight">Bestelling Overzicht</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Totaal voor {orders.length} bestellingen</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Totaal voor {activeOrders.length} bestellingen</p>
           </div>
         </div>
         <button className="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors">
@@ -67,19 +165,35 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack
         </button>
       </header>
 
-      <main className="flex-1 px-4 pb-24 overflow-y-auto space-y-6">
+      <main className="flex-1 px-4 pb-48 overflow-y-auto space-y-6">
         {/* Hero Card */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-400 dark:from-blue-600 dark:to-blue-500 rounded-2xl p-5 shadow-lg shadow-blue-500/20 mt-2 text-white">
+        <div className={`rounded-2xl p-5 shadow-lg mt-2 text-white transition-colors 
+            ${sessionStatus === 'ordered' 
+                ? 'bg-gradient-to-r from-green-600 to-green-500 shadow-green-500/20' 
+                : sessionStatus === 'ordering'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-400 shadow-orange-500/20'
+                    : sessionStatus === 'completed'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 shadow-blue-500/20'
+                        : 'bg-gradient-to-r from-gray-600 to-gray-500 shadow-gray-500/20'
+            }`}>
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-blue-100 text-sm font-medium mb-1">Totaal te betalen</p>
+              <p className="text-white/80 text-sm font-medium mb-1">Totaal te betalen</p>
               <h2 className="text-4xl font-bold text-white">€ {totalAmount.toFixed(2).replace('.', ',')}</h2>
             </div>
             <div className="text-right">
-              <p className="text-xs text-blue-100 mb-1">Status: <span className="font-bold text-white">{orders.length > 0 ? 'Verzamelen' : 'Wachten'}</span></p>
-              <button className="bg-white text-blue-600 text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm active:scale-95 transition-transform">
-                Afronden <span className="material-icons-round text-sm">check_circle</span>
-              </button>
+              <p className="text-xs text-white/80 mb-1">Status: <span className="font-bold text-white">{getStatusLabel()}</span></p>
+              <div className="flex justify-end mt-1">
+                  {sessionStatus === 'completed' ? (
+                      <span className="material-icons-round text-white/50 text-4xl">lock</span>
+                  ) : sessionStatus === 'ordered' ? (
+                      <span className="material-icons-round text-white/50 text-4xl">check_circle</span>
+                  ) : sessionStatus === 'ordering' ? (
+                      <span className="material-icons-round text-white/50 text-4xl">call</span>
+                  ) : (
+                      <span className="material-icons-round text-white/50 text-4xl">shopping_cart</span>
+                  )}
+              </div>
             </div>
           </div>
         </div>
@@ -125,26 +239,12 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack
                     {/* Info */}
                     <div>
                       <h4 className="font-bold text-gray-900 dark:text-white text-base">{item.name}</h4>
-                      {/* Optional detail placeholder if we add comments later */}
-                      {/* <p className="text-gray-500 text-xs mt-0.5">{item.detail}</p> */}
                     </div>
                   </div>
 
                   {/* Right Side */}
                   <div className="flex items-center gap-4">
                     <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">€ {item.price.toFixed(2).replace('.', ',')}</span>
-                    
-                    {/* Custom Checkbox */}
-                    <button 
-                      onClick={() => toggleCheck(item.id)}
-                      className={`h-6 w-6 rounded-md border-2 flex items-center justify-center transition-all ${
-                        item.checked 
-                          ? 'bg-blue-600 border-blue-600 dark:bg-blue-500 dark:border-blue-500' 
-                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                      }`}
-                    >
-                      {item.checked && <span className="material-icons-round text-white text-sm">check</span>}
-                    </button>
                   </div>
                 </div>
               ))}
@@ -154,19 +254,127 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ onBack
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-gray-50 dark:bg-[#0f172a] border-t border-gray-200 dark:border-gray-800 z-20 transition-colors">
-        <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-between group active:scale-[0.99] transition-all">
-          <div className="flex items-center gap-3">
-             <div className="bg-white/20 p-1 rounded-md">
-               <span className="material-icons-round text-lg">check_circle</span>
-             </div>
-             <span>Bestelling Afronden</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg">€ {totalAmount.toFixed(2).replace('.', ',')}</span>
-            <span className="material-icons-round group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </div>
-        </button>
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-gray-50 dark:bg-[#0f172a] border-t border-gray-200 dark:border-gray-800 z-20 transition-colors shadow-2xl">
+        <div className="space-y-3">
+            
+            {/* STEP 4: ORDERED (Final State) */}
+            {sessionStatus === 'ordered' && (
+                <div className="space-y-3">
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3 flex items-center justify-between animate-in slide-in-from-bottom-2">
+                        <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                            <span className="material-icons-round">alarm_on</span>
+                            <span className="font-bold text-sm">Besteld voor {pickupTime}</span>
+                        </div>
+                    </div>
+                    <p className="text-xs text-center text-gray-500">
+                      De sessie reset automatisch wanneer dit tijdstip gepasseerd is.
+                    </p>
+                </div>
+            )}
+
+            {/* STEP 3: TIME INPUT (Overlay) */}
+            {showTimeInput && (
+                <div className="bg-white dark:bg-[#1e293b] rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg animate-in slide-in-from-bottom-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <span className="material-icons-round text-green-600">schedule</span>
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Hoe laat om de frieten?</h3>
+                    </div>
+                    <div className="flex gap-2">
+                         <div className="relative flex-1">
+                            <input 
+                              type="time" 
+                              value={tempPickupTime}
+                              onChange={(e) => setTempPickupTime(e.target.value)}
+                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-lg font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-center" 
+                            />
+                         </div>
+                         <button 
+                           onClick={confirmTime}
+                           className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 rounded-lg shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                         >
+                            <span className="material-icons-round">check</span>
+                            <span>Bevestig</span>
+                         </button>
+                    </div>
+                    <button 
+                       onClick={() => setShowTimeInput(false)}
+                       className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1"
+                    >
+                        Annuleren
+                    </button>
+                </div>
+            )}
+
+            {/* STEP 2: ORDERING IN PROGRESS */}
+            {sessionStatus === 'ordering' && !showTimeInput && (
+                <div className="bg-orange-50 dark:bg-orange-900/10 rounded-xl p-3 border border-orange-200 dark:border-orange-800 shadow-sm animate-in slide-in-from-bottom-5">
+                    <div className="flex items-center gap-3 mb-3 text-orange-800 dark:text-orange-200">
+                         <span className="material-icons-round animate-pulse">call</span>
+                         <span className="text-xs font-bold uppercase tracking-wide">Bestelling doorgeven...</span>
+                    </div>
+                    <button 
+                       onClick={handleMarkOrdered}
+                       className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                       <span className="material-icons-round">check_circle</span>
+                       <span>Besteld</span>
+                    </button>
+                </div>
+            )}
+
+            {/* STEP 1: COMPLETED (Review) */}
+            {sessionStatus === 'completed' && (
+                <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-5">
+                   <button 
+                      onClick={startOrderingProcess}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                   >
+                      <span className="material-icons-round">call</span>
+                      Aan het bestellen
+                   </button>
+                   
+                   <button 
+                    onClick={handleFooterAction}
+                    className="w-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm"
+                   >
+                     {showReopenConfirmation ? (
+                        <>
+                            <span className="material-icons-round text-red-500">warning</span>
+                            <span className="text-red-500">Zeker? Klik om te heropenen</span>
+                        </>
+                     ) : (
+                        <>
+                            <span className="material-icons-round">lock_open</span>
+                            <span>Bestelling Heropenen</span>
+                        </>
+                     )}
+                   </button>
+                </div>
+            )}
+
+            {/* DEFAULT: CLOSED or OPEN */}
+            {(sessionStatus === 'open' || sessionStatus === 'closed') && (
+                <button 
+                onClick={handleFooterAction}
+                className={`w-full text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center gap-3 group active:scale-[0.99] transition-all bg-blue-600 hover:bg-blue-500 shadow-blue-500/20`}
+                >
+                    <div className="flex items-center gap-3 flex-1 justify-start">
+                        <div className="bg-white/20 p-1 rounded-md">
+                            <span className="material-icons-round text-lg">
+                             {sessionStatus === 'open' ? 'check_circle' : 'play_arrow'}
+                            </span>
+                        </div>
+                        <span>
+                            {sessionStatus === 'open' ? 'Bestelling Afronden' : 'Sessie Starten'}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-lg">€ {totalAmount.toFixed(2).replace('.', ',')}</span>
+                        <span className="material-icons-round group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </div>
+                </button>
+            )}
+        </div>
       </footer>
     </div>
   );

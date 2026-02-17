@@ -14,11 +14,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
     <div className="flex flex-col min-h-screen pb-24">
       {/* Header */}
       <header className="px-6 py-6 flex justify-between items-center bg-surface-light dark:bg-surface-dark shadow-sm sticky top-0 z-40">
-        <div className="flex flex-col">
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Welkom, {displayName}</span>
-          <h1 className="text-2xl font-bold text-primary dark:text-blue-500">KSA Startscherm</h1>
+        <div className="flex flex-col justify-center">
+          <span className="text-sm font-bold text-primary dark:text-blue-500 uppercase tracking-wider mb-1">KSA Aalter</span>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white leading-none">Welkom, {displayName}</h1>
         </div>
-        <div className="h-10 w-10 rounded-full border-2 border-primary overflow-hidden">
+        <div 
+          onClick={() => onNavigate('settings')}
+          className="h-12 w-12 rounded-full border-2 border-white dark:border-gray-700 shadow-md overflow-hidden cursor-pointer active:scale-95 transition-transform"
+        >
           <img 
             src={currentUser.avatar} 
             alt="Profile" 
@@ -220,7 +223,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
                  onClick={() => onNavigate('team-drank-dashboard')}
                  className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                >
-                 <span className="material-icons-round text-blue-500 group-hover:scale-110 transition-transform">dashboard</span>
+                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 w-fit group-hover:scale-110 transition-transform origin-left">
+                   <span className="material-icons-round">dashboard</span>
+                 </div>
                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Dashboard</span>
                </div>
                
@@ -228,7 +233,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
                  onClick={() => onNavigate('team-drank-stock')}
                  className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                >
-                 <span className="material-icons-round text-orange-500 group-hover:scale-110 transition-transform">inventory_2</span>
+                 <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-400 w-fit group-hover:scale-110 transition-transform origin-left">
+                   <span className="material-icons-round">inventory_2</span>
+                 </div>
                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Voorraad</span>
                </div>
 
@@ -236,7 +243,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
                  onClick={() => onNavigate('team-drank-billing')}
                  className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                >
-                 <span className="material-icons-round text-green-500 group-hover:scale-110 transition-transform">attach_money</span>
+                 <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400 w-fit group-hover:scale-110 transition-transform origin-left">
+                   <span className="material-icons-round">attach_money</span>
+                 </div>
                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Rekeningen</span>
                </div>
                
@@ -244,7 +253,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
                  onClick={() => onNavigate('team-drank-invoices')}
                  className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                >
-                 <span className="material-icons-round text-purple-500 group-hover:scale-110 transition-transform">receipt_long</span>
+                 <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400 w-fit group-hover:scale-110 transition-transform origin-left">
+                   <span className="material-icons-round">receipt_long</span>
+                 </div>
                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Facturen</span>
                </div>
             </div>

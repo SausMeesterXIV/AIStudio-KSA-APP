@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ChevronBack } from '../components/ChevronBack';
 import { getCurrentUser } from '../lib/data';
 
@@ -10,6 +10,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   const [isDark, setIsDark] = useState(false);
   const currentUser = getCurrentUser();
   const [nickname, setNickname] = useState(currentUser.nickname || '');
+  const [avatar, setAvatar] = useState(currentUser.avatar);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Check initial
@@ -30,9 +32,25 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
 
   const handleSaveNickname = () => {
     // In a real app, this would save to backend. 
-    // For now we just update the local object (which resets on reload but works for the session)
     currentUser.nickname = nickname;
     alert('Bijnaam opgeslagen!');
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setAvatar(result);
+        currentUser.avatar = result; // Update local data
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -49,11 +67,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
       <main className="flex-1 overflow-y-auto">
         {/* Profile Header */}
         <section className="p-6 flex flex-col items-center border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1e2330]/30 transition-colors">
-          <div className="relative mb-4">
-            <div className="w-24 h-24 rounded-full border-4 border-blue-100 dark:border-blue-900/50 p-1">
-              <img src={currentUser.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+          <div className="relative mb-4 group cursor-pointer" onClick={triggerFileInput}>
+            <div className="w-24 h-24 rounded-full border-4 border-blue-100 dark:border-blue-900/50 p-1 overflow-hidden">
+              <img src={avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
             </div>
-            <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full shadow-lg border-2 border-gray-50 dark:border-[#0f172a]">
+            {/* Hidden Input */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*"
+              onChange={handleImageUpload}
+            />
+            <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-lg border-2 border-gray-50 dark:border-[#0f172a] transition-transform active:scale-95 group-hover:scale-110">
               <span className="material-icons-round text-sm block">edit</span>
             </button>
           </div>
