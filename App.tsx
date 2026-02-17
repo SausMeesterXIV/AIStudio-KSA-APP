@@ -17,8 +17,9 @@ import { NudgeSelectorScreen } from './screens/NudgeSelectorScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NewMessageScreen } from './screens/NewMessageScreen';
 import { MyInvoiceScreen } from './screens/MyInvoiceScreen';
-import { Order, CartItem, Notification, User } from './types';
-import { getCurrentUser } from './lib/data';
+import { QuotesScreen } from './screens/QuotesScreen';
+import { Order, CartItem, Notification, User, Event, Quote, CountdownItem } from './types';
+import { getCurrentUser, MOCK_USERS } from './lib/data';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -38,6 +39,115 @@ const App: React.FC = () => {
   // 'ordered' = time set, waiting for pickup
   const [friesSessionStatus, setFriesSessionStatus] = useState<'open' | 'closed' | 'completed' | 'ordering' | 'ordered'>('closed');
   const [friesPickupTime, setFriesPickupTime] = useState<string | null>(null);
+
+  // Centralized Countdown State (Array)
+  // Default: Ensure one item is definitely in the future relative to "now"
+  const [countdowns, setCountdowns] = useState<CountdownItem[]>(() => {
+    const nextYear = new Date().getFullYear() + 1;
+    // Create Date using numeric constructor (Year, MonthIndex, Day) for LOCAL time to avoid UTC offset issues
+    // Month is 0-indexed, so 6 is July
+    return [{
+      id: '1',
+      title: 'Groot Kamp',
+      targetDate: new Date(nextYear, 6, 21) 
+    }];
+  });
+
+  // Centralized Quotes State
+  const [quotes, setQuotes] = useState<Quote[]>([
+    {
+      id: '1',
+      text: "Tibo is de opperkeizer 👑",
+      authorId: '2',
+      authorName: 'Lukas Vermeulen',
+      context: 'Tijdens de algemene vergadering',
+      date: new Date(new Date().setDate(new Date().getDate() - 2)),
+      likes: 42,
+      addedBy: '1'
+    },
+    {
+      id: '2',
+      text: "Is mayonaise eigenlijk een groente?",
+      authorId: '4',
+      authorName: 'Thomas De Vries',
+      context: 'Tijdens het eten van frieten',
+      date: new Date(new Date().setDate(new Date().getDate() - 10)),
+      likes: 12,
+      addedBy: '1'
+    }
+  ]);
+
+  const handleLikeQuote = (id: string) => {
+    setQuotes(prev => prev.map(q => {
+      if (q.id === id) {
+        return { ...q, likes: q.likes + 1 };
+      }
+      return q;
+    }));
+  };
+
+  const handleAddQuote = (text: string, context: string, authorId: string) => {
+    const currentUser = getCurrentUser();
+    const author = MOCK_USERS.find(u => u.id === authorId);
+    
+    const newQuote: Quote = {
+      id: Date.now().toString(),
+      text,
+      authorId,
+      authorName: author ? author.name : 'Onbekend',
+      context,
+      date: new Date(),
+      likes: 0,
+      addedBy: currentUser.id
+    };
+    setQuotes([newQuote, ...quotes]);
+  };
+
+  // Centralized Events State
+  const [events, setEvents] = useState<Event[]>([
+    { 
+      id: '1', 
+      title: 'Leidingskring', 
+      date: new Date(new Date().getFullYear(), 9, 12, 20, 0), // Oct 12
+      location: 'Lokaal', 
+      type: 'vergadering', 
+      startTime: '20:00',
+      description: 'Maandelijkse vergadering.'
+    },
+    { 
+      id: '2', 
+      title: 'Startdag Voorbereiding', 
+      date: new Date(new Date().getFullYear(), 9, 15, 14, 0), // Oct 15
+      location: 'Terrein', 
+      type: 'activiteit', 
+      startTime: '14:00',
+      description: 'Klaarzetten van sjorconstructies.'
+    },
+    { 
+      id: '3', 
+      title: 'Spaghetti Avond', 
+      date: new Date(new Date().getFullYear(), 9, 21, 18, 0), // Oct 21
+      location: 'Lokaal 4', 
+      type: 'event', 
+      startTime: '18:00',
+      description: 'Gezellig eten met iedereen.'
+    }
+  ]);
+
+  const handleSaveEvent = (event: Event) => {
+    setEvents(prev => {
+      const exists = prev.find(e => e.id === event.id);
+      if (exists) {
+        return prev.map(e => e.id === event.id ? event : e);
+      } else {
+        return [...prev, event];
+      }
+    });
+  };
+
+  const handleDeleteEvent = (id: string) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+  };
 
   // Centralized Notifications State
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -219,7 +329,7 @@ const App: React.FC = () => {
   // Handle Internal Routing (from Home dashboard)
   const handleInternalNavigate = (screenId: string) => {
     // Save previous screen for back navigation from sub-screens
-    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice'].includes(screenId)) {
+    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice', 'quotes'].includes(screenId)) {
       setPreviousScreen(currentScreen);
     }
     
@@ -241,7 +351,8 @@ const App: React.FC = () => {
         'team-drank-stock',
         'team-drank-billing',
         'team-drank-invoices',
-        'my-invoice'
+        'my-invoice',
+        'quotes'
       ];
       
       if (subModules.includes(screenId)) {
@@ -266,7 +377,13 @@ const App: React.FC = () => {
 
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen onNavigate={handleInternalNavigate} balance={balance} />;
+        return <HomeScreen 
+          onNavigate={handleInternalNavigate} 
+          balance={balance} 
+          events={events} 
+          quotes={quotes}
+          countdowns={countdowns}
+        />;
       case 'strepen':
         return <StrepenScreen 
           onNavigateOverview={() => handleInternalNavigate('strepen-overview')} 
@@ -291,6 +408,14 @@ const App: React.FC = () => {
         />;
       case 'new-message':
         return <NewMessageScreen onBack={() => handleInternalNavigate(previousScreen)} />;
+      
+      case 'quotes':
+        return <QuotesScreen 
+          onBack={() => handleInternalNavigate(previousScreen)} 
+          quotes={quotes}
+          onLike={handleLikeQuote}
+          onAddQuote={handleAddQuote}
+        />;
 
       case 'frieten':
         // Filter orders for current user history
@@ -336,6 +461,7 @@ const App: React.FC = () => {
           onBack={handleBackToHome} 
           notifications={notifications}
           onMarkAsRead={handleMarkNotificationAsRead}
+          events={events}
         />;
       case 'settings':
         return <SettingsScreen onBack={handleBackToHome} />;
@@ -343,19 +469,28 @@ const App: React.FC = () => {
         return <AgendaManageScreen 
           onBack={handleBackToHome} 
           onAddNotification={handleAddNotification}
+          events={events}
+          onSaveEvent={handleSaveEvent}
+          onDeleteEvent={handleDeleteEvent}
+          countdowns={countdowns}
+          onSaveCountdowns={setCountdowns}
         />;
       default:
-        return <HomeScreen onNavigate={handleInternalNavigate} balance={balance} />;
+        return <HomeScreen 
+          onNavigate={handleInternalNavigate} 
+          balance={balance} 
+          events={events} 
+          quotes={quotes}
+          countdowns={countdowns}
+        />;
     }
   };
 
   return (
     <div className="text-base">
       {renderScreen()}
-      {/* Hide bottom nav on full screen modals */}
-      {!['agenda-manage', 'fries-overview', 'strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice'].includes(currentScreen) && (
-        <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
-      )}
+      {/* Bottom Nav is now unconditionally rendered */}
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 };

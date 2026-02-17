@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { ChevronBack } from '../components/ChevronBack';
-import { Notification } from '../types';
+import { Notification, Event } from '../types';
 
 interface AgendaScreenProps {
   onBack: () => void;
   notifications: Notification[];
   onMarkAsRead: (id: number) => void;
+  events: Event[];
 }
 
-export const AgendaScreen: React.FC<AgendaScreenProps> = ({ onBack, notifications, onMarkAsRead }) => {
+export const AgendaScreen: React.FC<AgendaScreenProps> = ({ onBack, notifications, onMarkAsRead, events }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showNewEvents, setShowNewEvents] = useState(false);
 
@@ -46,22 +47,27 @@ export const AgendaScreen: React.FC<AgendaScreenProps> = ({ onBack, notification
     setCurrentDate(new Date(newDate));
   };
 
-  // Mock events for display (Static for now, but linked to date visually)
   const isToday = (day: number) => {
     const today = new Date();
     return day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
   };
 
   const hasEvent = (day: number) => {
-    // Just random mock data logic for visual indicators
-    return [6, 11, 14, 21].includes(day) && month === 9; // October mock events
+    return events.some(e => {
+       const d = new Date(e.date);
+       return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
+    });
   };
 
   const handleNewEventClick = (id: number) => {
     onMarkAsRead(id);
-    // Optionally stay open or close:
-    // setShowNewEvents(false);
   };
+  
+  // Filter events for current month display
+  const eventsThisMonth = events.filter(e => {
+     const d = new Date(e.date);
+     return d.getMonth() === month && d.getFullYear() === year;
+  }).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#0f172a] overflow-hidden transition-colors duration-200">
@@ -187,50 +193,37 @@ export const AgendaScreen: React.FC<AgendaScreenProps> = ({ onBack, notification
       {/* Event List */}
       <div className="flex-1 overflow-y-auto px-4 pb-24 pt-2 space-y-4 no-scrollbar">
         
-        {/* Only show these if in October for demo purposes */}
-        {month === 9 && (
-          <>
-            <h3 className="px-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vandaag, 6 Okt</h3>
-            <div className="bg-white dark:bg-[#1e2330] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-3 relative overflow-hidden group transition-colors">
-              <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 mb-1 uppercase tracking-wide">KSA Nationaal</span>
-                  <h4 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">Leidingsweekend</h4>
-                </div>
-                <div className="text-right">
-                  <span className="block text-xl font-semibold text-blue-600 dark:text-blue-400">20:00</span>
-                  <span className="text-xs text-gray-400">tot Zo 14:00</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                <span className="material-icons-round text-gray-400 text-base">location_on</span>
-                <span>Ardennen, Durbuy</span>
-              </div>
-            </div>
+        {eventsThisMonth.length > 0 ? (
+          eventsThisMonth.map(event => {
+            const d = new Date(event.date);
+            const dateStr = d.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'short' });
 
-            <h3 className="px-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider pt-2">Woensdag, 11 Okt</h3>
-            <div className="bg-white dark:bg-[#1e2330] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-3 relative overflow-hidden transition-colors">
-              <div className="absolute top-0 left-0 w-1 h-full bg-gray-300 dark:bg-gray-600"></div>
-              <div className="flex justify-between items-start">
-                 <div>
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 mb-1 uppercase tracking-wide">Administratie</span>
-                  <h4 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">Kernvergadering</h4>
-                </div>
-                <div className="text-right">
-                  <span className="block text-xl font-semibold text-gray-900 dark:text-white">20:00</span>
-                  <span className="text-xs text-gray-400">1u 30min</span>
+            return (
+              <div key={event.id}>
+                <h3 className="px-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{dateStr}</h3>
+                <div className="bg-white dark:bg-[#1e2330] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-3 relative overflow-hidden group transition-colors">
+                  <div className={`absolute top-0 left-0 w-1 h-full ${event.type === 'vergadering' ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-600'}`}></div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mb-1 uppercase tracking-wide ${event.type === 'vergadering' ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'}`}>
+                        {event.type || 'Event'}
+                      </span>
+                      <h4 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{event.title}</h4>
+                      {event.description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{event.description}</p>}
+                    </div>
+                    <div className="text-right">
+                      <span className={`block text-xl font-semibold ${event.type === 'vergadering' ? 'text-gray-900 dark:text-white' : 'text-blue-600 dark:text-blue-400'}`}>{event.startTime}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                    <span className="material-icons-round text-gray-400 text-base">location_on</span>
+                    <span>{event.location}</span>
+                  </div>
                 </div>
               </div>
-               <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                <span className="material-icons-round text-gray-400 text-base">location_on</span>
-                <span>'t Lokaal, Vergaderzaal 1</span>
-              </div>
-            </div>
-          </>
-        )}
-
-        {month !== 9 && (
+            );
+          })
+        ) : (
            <div className="flex flex-col items-center justify-center py-10 text-gray-400">
               <span className="material-icons-round text-4xl mb-2 opacity-50">event_busy</span>
               <p>Geen evenementen gepland voor deze maand.</p>

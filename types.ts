@@ -50,6 +50,7 @@ export interface Event {
   startTime: string;
   endTime?: string;
   responsible?: string;
+  description?: string;
 }
 
 export interface Transaction {
@@ -75,4 +76,21 @@ export interface Notification {
   action: string;
   icon: string;
   color: string;
+}
+
+export interface Quote {
+  id: string;
+  text: string;
+  authorId: string;
+  authorName: string;
+  context?: string;
+  date: Date;
+  likes: number;
+  addedBy: string;
+}
+
+export interface CountdownItem {
+  id: string;
+  title: string;
+  targetDate: Date;
 }

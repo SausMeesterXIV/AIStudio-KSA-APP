@@ -1,14 +1,99 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { getCurrentUser } from '../lib/data';
+import { Event, Quote, CountdownItem } from '../types';
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
   balance: number;
+  events: Event[];
+  quotes: Quote[];
+  countdowns?: CountdownItem[];
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, events, quotes, countdowns = [] }) => {
   const currentUser = getCurrentUser();
   const displayName = currentUser.nickname || currentUser.name.split(' ')[0];
+
+  // Logic to find next 2 upcoming events
+  const now = new Date();
+  const upcomingEvents = events
+    .filter(e => new Date(e.date) >= new Date(now.setHours(0,0,0,0))) // Filter past events (keep today)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // Sort by date ascending
+    .slice(0, 2); // Take first 2
+
+  // Find Quote of the Week (Most likes)
+  const topQuote = useMemo(() => {
+    if (quotes.length === 0) return null;
+    return [...quotes].sort((a, b) => b.likes - a.likes)[0];
+  }, [quotes]);
+
+  // Pre-filter valid countdowns (only today or future) AND SORT them by date
+  const validCountdowns = useMemo(() => {
+     const today = new Date();
+     today.setHours(0, 0, 0, 0);
+     return countdowns
+        .filter(c => {
+            const t = new Date(c.targetDate);
+            t.setHours(0,0,0,0);
+            return t.getTime() >= today.getTime();
+        })
+        .sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
+  }, [countdowns]);
+
+  // Camp Countdown Logic Helper
+  const renderCountdown = (item: CountdownItem, index: number) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const target = new Date(item.targetDate);
+    // Explicitly set target hours to match "start of day" calculation to avoid off-by-one errors
+    target.setHours(0, 0, 0, 0);
+
+    const diffTime = target.getTime() - today.getTime();
+    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Safety check (already filtered, but robust)
+    if (daysLeft < 0) return null;
+
+    if (daysLeft === 0) {
+      // Today is the day!
+      return (
+        <div key={item.id} className="bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl p-4 text-white shadow-lg shadow-pink-500/30 relative overflow-hidden animate-pulse">
+           <div className="flex flex-col items-center justify-center relative z-10">
+              <div className="flex items-center gap-2 mb-1">
+                 <span className="material-icons-round text-lg">celebration</span>
+                 <span className="text-xs font-bold uppercase tracking-wider opacity-90">Vandaag is start</span>
+              </div>
+              <h2 className="text-xl font-extrabold text-center leading-tight">{item.title}!</h2>
+           </div>
+        </div>
+      );
+    } 
+    
+    // Future
+    const targetMonth = target.toLocaleString('nl-BE', { month: 'short' }).toUpperCase();
+    const targetDay = target.getDate();
+    
+    return (
+      <div 
+        key={item.id} 
+        className="rounded-2xl p-4 text-white shadow-lg relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-500/30"
+      >
+        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+        
+        <div className="flex justify-between items-center relative z-10">
+          <div className="flex-1 pr-2">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-0.5">{item.title}</h2>
+              <p className="text-sm font-medium text-white/90">Nog <span className="font-bold text-xl text-white">{daysLeft}</span> nachten!</p>
+          </div>
+          <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg border border-white/10 flex flex-col items-center min-w-[3.5rem] shrink-0">
+              <span className="text-xl font-bold leading-none">{targetDay}</span>
+              <span className="text-[9px] uppercase font-bold mt-0.5">{targetMonth}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col min-h-screen pb-24">
@@ -30,7 +115,51 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-6 space-y-8">
+      <main className="flex-1 px-4 py-6 space-y-6">
+
+        {/* --- DYNAMIC DASHBOARD WIDGETS --- */}
+        
+        {/* 1. Quote of the Week (Splash) */}
+        {topQuote && (
+          <section 
+            onClick={() => onNavigate('quotes')}
+            className="bg-white dark:bg-[#1e2330] rounded-2xl p-0.5 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer group hover:scale-[1.01] transition-transform"
+          >
+             <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 rounded-[14px] p-5 relative overflow-hidden">
+                {/* Decorative Quote Icon */}
+                <div className="absolute top-2 right-4 text-8xl font-serif text-yellow-500/10 dark:text-yellow-500/5 select-none leading-none">”</div>
+                
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="material-icons-round text-yellow-500 text-sm">emoji_events</span>
+                  <h2 className="text-xs font-bold text-yellow-600 dark:text-yellow-500 uppercase tracking-widest">Quote van de week</h2>
+                </div>
+
+                <p className="text-gray-900 dark:text-white font-serif italic text-lg leading-relaxed mb-3 pr-4">
+                  "{topQuote.text}"
+                </p>
+
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-[10px] font-bold text-yellow-700 dark:text-yellow-400">
+                         {topQuote.authorName.charAt(0)}
+                      </div>
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{topQuote.authorName}</span>
+                   </div>
+                   <div className="flex items-center gap-1 text-pink-500">
+                      <span className="material-icons-round text-sm">favorite</span>
+                      <span className="text-xs font-bold">{topQuote.likes}</span>
+                   </div>
+                </div>
+             </div>
+          </section>
+        )}
+
+        {/* 2. Countdown Widgets (Conditional) - Now BELOW Quote */}
+        {validCountdowns.length > 0 && (
+          <section className={`mb-6 ${validCountdowns.length > 1 ? "grid grid-cols-2 gap-3" : ""}`}>
+             {validCountdowns.map((item, index) => renderCountdown(item, index))}
+          </section>
+        )}
         
         {/* Balance Card - Now Clickable */}
         <section 
@@ -55,7 +184,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
           </div>
         </section>
 
-        {/* PRIMARY USER ACTIONS (Moved to Top) */}
+        {/* PRIMARY USER ACTIONS */}
         <div className="grid grid-cols-2 gap-4">
           
           {/* Strepen Module */}
@@ -113,53 +242,47 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
           </div>
 
           <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-2 shadow-sm border border-gray-100 dark:border-gray-800 space-y-1">
-             {/* Event 1 */}
-             <div 
-                onClick={() => onNavigate('agenda')}
-                className="flex items-center gap-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors cursor-pointer"
-             >
-                <div className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl h-14 w-14 flex flex-col items-center justify-center shrink-0 border border-gray-200 dark:border-gray-700">
-                  <span className="text-lg font-bold leading-none">12</span>
-                  <span className="text-[10px] font-bold uppercase leading-none text-gray-500">Okt</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 dark:text-white text-base">Leidingskring</h3>
-                  <div className="flex items-center gap-3 text-gray-500 text-xs mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <span className="material-icons-round text-[10px]">schedule</span> 20:00
-                    </span>
-                    <span className="flex items-center gap-1">
-                       <span className="material-icons-round text-[10px]">place</span> Lokaal
-                    </span>
-                  </div>
-                </div>
-                <span className="material-icons-round text-gray-300">chevron_right</span>
-             </div>
-
-             <div className="h-px bg-gray-100 dark:bg-gray-800 mx-3"></div>
-
-             {/* Event 2 */}
-             <div 
-                onClick={() => onNavigate('agenda')}
-                className="flex items-center gap-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors cursor-pointer"
-             >
-                <div className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl h-14 w-14 flex flex-col items-center justify-center shrink-0 border border-gray-200 dark:border-gray-700">
-                  <span className="text-lg font-bold leading-none">15</span>
-                  <span className="text-[10px] font-bold uppercase leading-none text-gray-500">Okt</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 dark:text-white text-base">Startdag Voorbereiding</h3>
-                  <div className="flex items-center gap-3 text-gray-500 text-xs mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <span className="material-icons-round text-[10px]">schedule</span> 14:00
-                    </span>
-                     <span className="flex items-center gap-1">
-                       <span className="material-icons-round text-[10px]">place</span> Terrein
-                    </span>
-                  </div>
-                </div>
-                <span className="material-icons-round text-gray-300">chevron_right</span>
-             </div>
+             {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((event, index) => {
+                  const evtDate = new Date(event.date);
+                  const day = evtDate.getDate();
+                  const month = evtDate.toLocaleString('nl-BE', { month: 'short' }).replace('.', '');
+                  
+                  return (
+                    <div key={event.id}>
+                       <div 
+                          onClick={() => onNavigate('agenda')}
+                          className="flex items-center gap-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors cursor-pointer"
+                       >
+                          <div className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl h-14 w-14 flex flex-col items-center justify-center shrink-0 border border-gray-200 dark:border-gray-700">
+                            <span className="text-lg font-bold leading-none">{day}</span>
+                            <span className="text-[10px] font-bold uppercase leading-none text-gray-500">{month}</span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-gray-900 dark:text-white text-base">{event.title}</h3>
+                            <div className="flex items-center gap-3 text-gray-500 text-xs mt-0.5">
+                              <span className="flex items-center gap-1">
+                                <span className="material-icons-round text-[10px]">schedule</span> {event.startTime}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                 <span className="material-icons-round text-[10px]">place</span> {event.location}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="material-icons-round text-gray-300">chevron_right</span>
+                       </div>
+                       {/* Add separator if it's the first item and there are more items */}
+                       {index === 0 && upcomingEvents.length > 1 && (
+                         <div className="h-px bg-gray-100 dark:bg-gray-800 mx-3"></div>
+                       )}
+                    </div>
+                  );
+                })
+             ) : (
+               <div className="p-4 text-center text-gray-400 text-sm">
+                 Geen komende evenementen.
+               </div>
+             )}
           </div>
         </section>
 
@@ -266,21 +389,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance }) =
              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sfeerbeheer</h2>
           </div>
           
-          <div 
-              onClick={() => onNavigate('agenda-manage')}
-              className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
-                  <span className="material-icons-round">edit_calendar</span>
+          <div className="grid gap-3">
+             <div 
+                onClick={() => onNavigate('agenda-manage')}
+                className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                    <span className="material-icons-round">edit_calendar</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">Agenda & Aftelklok</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Events en sfeer beheren</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">Agenda Beheren</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Evenementen toevoegen of wijzigen</p>
-                </div>
+                <span className="material-icons-round text-gray-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
               </div>
-              <span className="material-icons-round text-gray-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
-            </div>
+
+              {/* Quotes Button */}
+              <div 
+                onClick={() => onNavigate('quotes')}
+                className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-pink-100 dark:bg-pink-900/30 rounded-xl text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform">
+                    <span className="material-icons-round">format_quote</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">Citatenboekje</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Wall of Shame / Fame</p>
+                  </div>
+                </div>
+                <span className="material-icons-round text-gray-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+              </div>
+          </div>
         </section>
 
       </main>
