@@ -54,33 +54,92 @@ const App: React.FC = () => {
   });
 
   // Centralized Quotes State
+  // Mock data updated to use arrays for likes/dislikes. '1' is the current user ID in data.ts
   const [quotes, setQuotes] = useState<Quote[]>([
     {
       id: '1',
       text: "Tibo is de opperkeizer 👑",
       authorId: '2',
-      authorName: 'Lukas Vermeulen',
+      authorName: 'Luuk', // Nickname
       context: 'Tijdens de algemene vergadering',
       date: new Date(new Date().setDate(new Date().getDate() - 2)),
-      likes: 42,
+      likes: ['3', '4', '5', '6', '7', '8', '9', '10'], // Mock IDs
+      dislikes: [],
       addedBy: '1'
     },
     {
       id: '2',
       text: "Is mayonaise eigenlijk een groente?",
       authorId: '4',
-      authorName: 'Thomas De Vries',
+      authorName: 'Vrieze', // Nickname
       context: 'Tijdens het eten van frieten',
       date: new Date(new Date().setDate(new Date().getDate() - 10)),
-      likes: 12,
+      likes: ['2', '3'],
+      dislikes: ['5'],
+      addedBy: '1'
+    },
+    // Archived Quote (Older than 4 weeks) - High Score
+    {
+      id: '3',
+      text: "Als het niet past, gebruiken we gewoon meer sjor touw.",
+      authorId: '5',
+      authorName: 'Ems',
+      context: 'Kampopbouw 2023',
+      date: new Date(new Date().setMonth(new Date().getMonth() - 2)), // 2 months ago
+      likes: ['1', '2', '3', '4', '6', '7', '8'],
+      dislikes: [],
+      addedBy: '1'
+    },
+    // Archived Quote (Older than 4 weeks) - Low Score
+    {
+      id: '4',
+      text: "Ik heb per ongeluk de choco in de soep gedaan.",
+      authorId: '3',
+      authorName: 'Sarah De Smet',
+      context: 'Kookploeg blunder',
+      date: new Date(new Date().setMonth(new Date().getMonth() - 3)), // 3 months ago
+      likes: ['5'],
+      dislikes: ['1', '2', '4', '6'],
       addedBy: '1'
     }
   ]);
 
-  const handleLikeQuote = (id: string) => {
+  const handleVoteQuote = (id: string, type: 'like' | 'dislike') => {
+    const currentUser = getCurrentUser();
+    
     setQuotes(prev => prev.map(q => {
       if (q.id === id) {
-        return { ...q, likes: q.likes + 1 };
+        const hasLiked = q.likes.includes(currentUser.id);
+        const hasDisliked = q.dislikes.includes(currentUser.id);
+        
+        let newLikes = [...q.likes];
+        let newDislikes = [...q.dislikes];
+
+        if (type === 'like') {
+            if (hasLiked) {
+                // Toggle OFF
+                newLikes = newLikes.filter(uid => uid !== currentUser.id);
+            } else {
+                // Add Like, Remove Dislike if present
+                newLikes.push(currentUser.id);
+                if (hasDisliked) {
+                    newDislikes = newDislikes.filter(uid => uid !== currentUser.id);
+                }
+            }
+        } else if (type === 'dislike') {
+            if (hasDisliked) {
+                // Toggle OFF
+                newDislikes = newDislikes.filter(uid => uid !== currentUser.id);
+            } else {
+                // Add Dislike, Remove Like if present
+                newDislikes.push(currentUser.id);
+                if (hasLiked) {
+                    newLikes = newLikes.filter(uid => uid !== currentUser.id);
+                }
+            }
+        }
+
+        return { ...q, likes: newLikes, dislikes: newDislikes };
       }
       return q;
     }));
@@ -90,17 +149,25 @@ const App: React.FC = () => {
     const currentUser = getCurrentUser();
     const author = MOCK_USERS.find(u => u.id === authorId);
     
+    // Use Nickname if available, else full name
+    const displayAuthorName = author ? (author.nickname || author.name) : 'Onbekend';
+
     const newQuote: Quote = {
       id: Date.now().toString(),
       text,
       authorId,
-      authorName: author ? author.name : 'Onbekend',
+      authorName: displayAuthorName,
       context,
       date: new Date(),
-      likes: 0,
+      likes: [],
+      dislikes: [],
       addedBy: currentUser.id
     };
     setQuotes([newQuote, ...quotes]);
+  };
+
+  const handleDeleteQuote = (id: string) => {
+    setQuotes(prev => prev.filter(q => q.id !== id));
   };
 
   // Centralized Events State
@@ -329,7 +396,7 @@ const App: React.FC = () => {
   // Handle Internal Routing (from Home dashboard)
   const handleInternalNavigate = (screenId: string) => {
     // Save previous screen for back navigation from sub-screens
-    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice', 'quotes'].includes(screenId)) {
+    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice', 'quotes', 'quotes-manage'].includes(screenId)) {
       setPreviousScreen(currentScreen);
     }
     
@@ -352,7 +419,8 @@ const App: React.FC = () => {
         'team-drank-billing',
         'team-drank-invoices',
         'my-invoice',
-        'quotes'
+        'quotes',
+        'quotes-manage'
       ];
       
       if (subModules.includes(screenId)) {
@@ -409,12 +477,26 @@ const App: React.FC = () => {
       case 'new-message':
         return <NewMessageScreen onBack={() => handleInternalNavigate(previousScreen)} />;
       
+      // Regular View (No Management Features) - Accessed via Home Widget
       case 'quotes':
         return <QuotesScreen 
           onBack={() => handleInternalNavigate(previousScreen)} 
           quotes={quotes}
-          onLike={handleLikeQuote}
+          onVote={handleVoteQuote}
           onAddQuote={handleAddQuote}
+          onDeleteQuote={handleDeleteQuote}
+          enableManagement={false}
+        />;
+
+      // Admin View (Management Features) - Accessed via Sfeerbeheer Menu
+      case 'quotes-manage':
+        return <QuotesScreen 
+          onBack={() => handleInternalNavigate(previousScreen)} 
+          quotes={quotes}
+          onVote={handleVoteQuote}
+          onAddQuote={handleAddQuote}
+          onDeleteQuote={handleDeleteQuote}
+          enableManagement={true}
         />;
 
       case 'frieten':

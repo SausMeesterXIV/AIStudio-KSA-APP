@@ -85,7 +85,8 @@ export interface Quote {
   authorName: string;
   context?: string;
   date: Date;
-  likes: number;
+  likes: string[]; // Array of User IDs
+  dislikes: string[]; // Array of User IDs
   addedBy: string;
 }
 

@@ -21,10 +21,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // Sort by date ascending
     .slice(0, 2); // Take first 2
 
-  // Find Quote of the Week (Most likes)
+  // Find Quote of the Week (Most likes - dislikes) from Recent Quotes only (< 4 weeks)
   const topQuote = useMemo(() => {
-    if (quotes.length === 0) return null;
-    return [...quotes].sort((a, b) => b.likes - a.likes)[0];
+    const today = new Date();
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(today.getDate() - 28);
+
+    const recentQuotes = quotes.filter(q => new Date(q.date) >= fourWeeksAgo);
+    
+    if (recentQuotes.length === 0) return null;
+    
+    // Sort by Net Score
+    return [...recentQuotes].sort((a, b) => (b.likes.length - b.dislikes.length) - (a.likes.length - a.dislikes.length))[0];
   }, [quotes]);
 
   // Pre-filter valid countdowns (only today or future) AND SORT them by date
@@ -96,7 +104,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
   };
 
   return (
-    <div className="flex flex-col min-h-screen pb-24">
+    <div className="flex flex-col min-h-screen pb-24 relative">
       {/* Header */}
       <header className="px-6 py-6 flex justify-between items-center bg-surface-light dark:bg-surface-dark shadow-sm sticky top-0 z-40">
         <div className="flex flex-col justify-center">
@@ -125,7 +133,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
             onClick={() => onNavigate('quotes')}
             className="bg-white dark:bg-[#1e2330] rounded-2xl p-0.5 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer group hover:scale-[1.01] transition-transform"
           >
-             <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 rounded-[14px] p-5 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 rounded-[14px] p-5 relative overflow-hidden">
                 {/* Decorative Quote Icon */}
                 <div className="absolute top-2 right-4 text-8xl font-serif text-yellow-500/10 dark:text-yellow-500/5 select-none leading-none">”</div>
                 
@@ -139,18 +147,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
                 </p>
 
                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-[10px] font-bold text-yellow-700 dark:text-yellow-400">
-                         {topQuote.authorName.charAt(0)}
+                        {topQuote.authorName.charAt(0)}
                       </div>
                       <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{topQuote.authorName}</span>
-                   </div>
-                   <div className="flex items-center gap-1 text-pink-500">
-                      <span className="material-icons-round text-sm">favorite</span>
-                      <span className="text-xs font-bold">{topQuote.likes}</span>
-                   </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 text-pink-500">
+                        <span className="material-icons-round text-sm">thumb_up</span>
+                        <span className="text-xs font-bold">{topQuote.likes.length}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-gray-400">
+                        <span className="material-icons-round text-sm">thumb_down</span>
+                        <span className="text-xs font-bold">{topQuote.dislikes.length}</span>
+                      </div>
+                  </div>
                 </div>
-             </div>
+            </div>
           </section>
         )}
 
@@ -406,9 +420,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
                 <span className="material-icons-round text-gray-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
               </div>
 
-              {/* Quotes Button */}
+              {/* Quotes Button - Point to Management View */}
               <div 
-                onClick={() => onNavigate('quotes')}
+                onClick={() => onNavigate('quotes-manage')}
                 className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
               >
                 <div className="flex items-center gap-4">
@@ -416,7 +430,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
                     <span className="material-icons-round">format_quote</span>
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">Citatenboekje</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">Quoteboek</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Wall of Shame / Fame</p>
                   </div>
                 </div>
