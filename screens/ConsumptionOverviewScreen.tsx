@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MOCK_USERS } from '../lib/data';
+import { MOCK_USERS, CURRENT_USER_ID } from '../lib/data';
 
 interface ConsumptionOverviewScreenProps {
   onBack: () => void;
@@ -49,6 +49,7 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
     const weekNum = getWeekNumber(currentDate);
     
     const initialData = MOCK_USERS.map((user, idx) => ({
+      id: user.id, // Store ID to identify current user later
       name: user.nickname || user.name, 
       values: [
         Math.max(0, Math.floor(Math.random() * 15) + (weekNum % 2 === 0 ? -2 : 2)), // Bier variation
@@ -72,6 +73,15 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
       if (colIndex >= 0) {
         data = data.sort((a, b) => b.values[colIndex] - a.values[colIndex]);
       }
+    }
+
+    // PIN CURRENT USER TO TOP
+    // Find the current user in the sorted list, remove them, and unshift to the front
+    const currentUserIndex = data.findIndex(u => u.id === CURRENT_USER_ID);
+    if (currentUserIndex > -1) {
+      const currentUserRow = data[currentUserIndex];
+      data.splice(currentUserIndex, 1); // Remove from current position
+      data.unshift(currentUserRow); // Add to the very beginning
     }
 
     return { sortedData: data, totals: calculatedTotals };
@@ -160,18 +170,27 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {sortedData.map((row, rowIdx) => (
-                  <tr key={rowIdx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="py-4 px-4 font-medium text-gray-900 dark:text-white text-sm sticky left-0 bg-white dark:bg-surface-dark border-r border-gray-100 dark:border-gray-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      {row.name}
-                    </td>
-                    {row.values.map((val, vIdx) => (
-                      <td key={vIdx} className={`py-4 px-4 text-center text-sm ${sortOption === columns[vIdx+1] ? 'font-bold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/10' : 'text-gray-600 dark:text-gray-300'}`}>
-                        {val}
+                {sortedData.map((row, rowIdx) => {
+                  const isCurrentUser = row.id === CURRENT_USER_ID;
+                  return (
+                    <tr 
+                      key={rowIdx} 
+                      className={`${isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 z-10' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'} transition-colors relative`}
+                    >
+                      <td className={`py-4 px-4 font-medium text-sm sticky left-0 border-r border-gray-100 dark:border-gray-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] ${isCurrentUser ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-[#131b2e]' : 'text-gray-900 dark:text-white bg-white dark:bg-surface-dark'}`}>
+                        <div className="flex items-center gap-2">
+                           {isCurrentUser && <span className="material-icons-round text-xs text-blue-500">person</span>}
+                           {row.name}
+                        </div>
                       </td>
-                    ))}
-                  </tr>
-                ))}
+                      {row.values.map((val, vIdx) => (
+                        <td key={vIdx} className={`py-4 px-4 text-center text-sm ${sortOption === columns[vIdx+1] ? 'font-bold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/10' : 'text-gray-600 dark:text-gray-300'}`}>
+                          {val}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot className="bg-gray-50 dark:bg-gray-800 font-bold sticky bottom-0 z-10 border-t-2 border-gray-100 dark:border-gray-700">
                 <tr>

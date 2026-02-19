@@ -174,29 +174,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
              {validCountdowns.map((item, index) => renderCountdown(item, index))}
           </section>
         )}
-        
-        {/* Balance Card - Now Clickable */}
-        <section 
-          onClick={() => onNavigate('my-invoice')}
-          className="bg-surface-light dark:bg-surface-dark p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:shadow-md transition-shadow group relative overflow-hidden"
-        >
-          <div className="flex justify-between items-start mb-2 relative z-10">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2 group-hover:text-primary dark:group-hover:text-blue-400 transition-colors">
-              <span className="material-icons-round text-primary">receipt_long</span>
-              Voorlopige Rekening
-            </h2>
-            <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-1 rounded-lg font-medium">Actief</span>
-          </div>
-          <div className="flex items-baseline gap-1 my-3 relative z-10">
-            <span className="text-4xl font-bold text-primary dark:text-blue-400">€ {balance.toFixed(2).replace('.', ',')}</span>
-          </div>
-          
-          <div className="flex justify-end items-center relative z-10 mt-2">
-             <span className="text-xs font-bold text-primary dark:text-blue-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-               Details <span className="material-icons-round text-xs">arrow_forward</span>
-             </span>
-          </div>
-        </section>
 
         {/* PRIMARY USER ACTIONS */}
         <div className="grid grid-cols-2 gap-4">

@@ -251,17 +251,15 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
              <span className="material-icons-round">{isManageMode ? 'close' : 'settings'}</span>
            </div>
         </div>
-        <div className="bg-blue-600 dark:bg-blue-600 text-white p-4 rounded-xl flex items-center justify-between shadow-lg shadow-blue-600/20">
+        <div 
+          onClick={onNavigateInvoice}
+          className="bg-blue-600 dark:bg-blue-600 text-white p-4 rounded-xl flex items-center justify-between shadow-lg shadow-blue-600/20 cursor-pointer active:scale-[0.98] transition-transform group"
+        >
           <div>
             <p className="text-xs font-medium text-blue-100 uppercase tracking-wider">Voorlopige Drankrekening</p>
             <p className="text-2xl font-bold">€ {currentBalance.toFixed(2).replace('.', ',')}</p>
           </div>
-          <button 
-            onClick={onNavigateInvoice}
-            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-1 backdrop-blur-sm"
-          >
-             Detail <span className="material-icons-round text-sm">chevron_right</span>
-          </button>
+          <span className="material-icons-round text-white/70">chevron_right</span>
         </div>
       </header>
 
@@ -359,7 +357,7 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
                  <span className="text-xl font-bold bg-white/20 px-3 py-1 rounded-lg">
                    € {((selectedDrink?.price || 0) * (displayCount === 0 ? 1 : displayCount)).toFixed(2)}
                  </span>
-                 <span className="material-icons-round bg-white text-blue-600 rounded-full p-1">arrow_forward</span>
+                 <span className="material-icons-round text-white/70">chevron_right</span>
               </div>
             </button>
           </div>
