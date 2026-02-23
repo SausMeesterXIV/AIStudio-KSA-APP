@@ -4,9 +4,10 @@ import { getCurrentUser } from '../lib/data';
 
 interface SettingsScreenProps {
   onBack: () => void;
+  onNavigate: (screenId: string) => void;
 }
 
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onNavigate }) => {
   const [isDark, setIsDark] = useState(false);
   const currentUser = getCurrentUser();
   const [nickname, setNickname] = useState(currentUser.nickname || '');
@@ -159,10 +160,22 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
               </div>
 
                {/* Notifications */}
-              <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+              <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="material-icons-round text-blue-600 dark:text-blue-500">notifications</span>
                   <span className="font-medium text-gray-900 dark:text-white">Meldingen</span>
+                </div>
+                <span className="material-icons-round text-gray-400">chevron_right</span>
+              </button>
+
+               {/* Credentials */}
+              <button 
+                onClick={() => onNavigate('credentials')}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-icons-round text-blue-600 dark:text-blue-500">key</span>
+                  <span className="font-medium text-gray-900 dark:text-white">Credentials</span>
                 </div>
                 <span className="material-icons-round text-gray-400">chevron_right</span>
               </button>

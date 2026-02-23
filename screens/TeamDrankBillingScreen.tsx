@@ -3,42 +3,77 @@ import { MOCK_USERS } from '../lib/data';
 
 interface TeamDrankBillingScreenProps {
   onBack: () => void;
+  onNavigate: (screenId: string) => void;
 }
 
-export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ onBack }) => {
-  const [selectedUsers, setSelectedUsers] = useState<string[]>(['4']); // Pre-select Thomas (id 4 in MOCK_USERS)
+export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ onBack, onNavigate }) => {
+  const [paidUsers, setPaidUsers] = useState<string[]>([]);
+  const [initialPaidUsers, setInitialPaidUsers] = useState<string[]>([]);
   const [filter, setFilter] = useState<'all' | 'open' | 'paid'>('open');
 
-  // Use MOCK_USERS directly for consistency
-  const users = MOCK_USERS.map(user => ({
-    ...user,
-    // Add logic to determine paid status based on balance if needed, 
-    // for now we'll simulate 'paid' if balance is 0 or positive
-    paid: user.balance >= 0,
-    amount: user.balance // Use the balance from centralized data
-  }));
+  // Load from localStorage on mount
+  React.useEffect(() => {
+    const saved = localStorage.getItem('teamDrankPaidUsers');
+    const parsed = saved ? JSON.parse(saved) : [];
+    setPaidUsers(parsed);
 
-  const toggleUser = (id: string) => {
-    if (selectedUsers.includes(id)) {
-      setSelectedUsers(selectedUsers.filter(u => u !== id));
+    // Snapshot initial state for "delayed move" logic
+    const initial = MOCK_USERS.map(u => {
+      const isPaid = u.balance >= 0 || parsed.includes(u.id);
+      return isPaid ? u.id : null;
+    }).filter(Boolean) as string[];
+    setInitialPaidUsers(initial);
+  }, []);
+
+  const togglePayment = (id: string, currentPaidStatus: boolean) => {
+    let newPaidUsers;
+    if (currentPaidStatus) {
+      // If currently paid, unpay (remove from overrides)
+      // Note: If balance >= 0, they are paid by default, so removing from overrides might not unpay them.
+      // But assuming we only toggle those with debt:
+      newPaidUsers = paidUsers.filter(uid => uid !== id);
     } else {
-      setSelectedUsers([...selectedUsers, id]);
+      // Mark as paid
+      newPaidUsers = [...paidUsers, id];
     }
+    setPaidUsers(newPaidUsers);
+    localStorage.setItem('teamDrankPaidUsers', JSON.stringify(newPaidUsers));
   };
 
-  const selectedTotal = users
-    .filter(u => selectedUsers.includes(u.id))
-    .reduce((acc, curr) => acc + Math.abs(curr.amount), 0);
+  // Derive users with current status
+  const users = MOCK_USERS.map(user => {
+    const isPaidOverride = paidUsers.includes(user.id);
+    const hasDebt = user.balance < 0;
+    // User is paid if they have no debt OR are explicitly marked as paid
+    const isPaid = !hasDebt || isPaidOverride;
+    
+    return {
+      ...user,
+      isPaid,
+      hasDebt,
+      // If paid, effective debt is 0 for the total calculation
+      effectiveDebt: isPaid ? 0 : Math.abs(user.balance)
+    };
+  });
 
   const filteredUsers = users.filter(user => {
-    if (filter === 'open') return !user.paid;
-    if (filter === 'paid') return user.paid;
+    if (filter === 'all') return true;
+    
+    if (filter === 'open') {
+      // Show if they were NOT paid initially
+      // This keeps them in the list even if we just marked them as paid
+      return !initialPaidUsers.includes(user.id);
+    }
+    
+    if (filter === 'paid') {
+      // Standard filtering for paid tab
+      return user.isPaid;
+    }
+    
     return true;
   });
 
-  const totalOutstanding = users
-    .filter(u => !u.paid)
-    .reduce((acc, curr) => acc + Math.abs(curr.amount), 0);
+  const totalOutstanding = users.reduce((acc, curr) => acc + curr.effectiveDebt, 0);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-white font-sans transition-colors duration-200">
@@ -51,7 +86,10 @@ export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ 
           <div className="flex-1">
              <div className="flex justify-between items-center">
                <h1 className="text-xl font-bold">Drankrekeningen</h1>
-               <button className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg shadow-blue-500/20 flex items-center gap-1">
+               <button 
+                 onClick={() => onNavigate('team-drank-billing-excel-preview')}
+                 className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg shadow-blue-500/20 flex items-center gap-1"
+               >
                  <span className="material-icons-round text-sm">download</span>
                  EXCEL
                </button>
@@ -97,14 +135,13 @@ export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ 
         {/* Ledger List */}
         <div className="space-y-3">
           {filteredUsers.map(user => {
-            const isSelected = selectedUsers.includes(user.id);
             return (
               <div 
                 key={user.id} 
-                onClick={() => toggleUser(user.id)}
+                onClick={() => togglePayment(user.id, user.isPaid)}
                 className={`p-4 rounded-2xl border flex items-center justify-between transition-all cursor-pointer shadow-sm group ${
-                  isSelected 
-                    ? 'bg-blue-50 dark:bg-[#1e3a8a]/20 border-blue-500 dark:border-blue-600' 
+                  user.isPaid 
+                    ? 'bg-white dark:bg-[#1e293b] border-gray-100 dark:border-gray-800 opacity-75' 
                     : 'bg-white dark:bg-[#1e293b] border-gray-100 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700'
                 }`}
               >
@@ -114,29 +151,29 @@ export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ 
                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                     </div>
                     {/* Status Dot */}
-                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-[#1e293b] ${user.paid ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-[#1e293b] ${user.isPaid ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 dark:text-white text-sm">{user.name}</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {user.paid ? 'Geen openstaand saldo' : 'Openstaande rekening'}
+                      {user.isPaid ? 'Geen openstaand saldo' : 'Openstaande rekening'}
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                    <div className={`font-bold text-base ${user.paid ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>
-                      {user.paid ? 'Betaald' : `€ ${Math.abs(user.amount).toFixed(2).replace('.', ',')}`}
+                    <div className={`font-bold text-base ${user.isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>
+                      {user.isPaid ? 'Betaald' : `€ ${Math.abs(user.balance).toFixed(2).replace('.', ',')}`}
                     </div>
-                    {!user.paid && (
+                    {!user.isPaid && (
                       <span className="text-[10px] text-red-500 font-medium">Niet betaald</span>
                     )}
                 </div>
                 
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ml-2 ${
-                    isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-gray-600 group-hover:border-blue-400'
+                    user.isPaid ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-gray-600 group-hover:border-blue-400'
                   }`}>
-                    {isSelected && <span className="material-icons-round text-white text-sm">check</span>}
+                    {user.isPaid && <span className="material-icons-round text-white text-sm">check</span>}
                 </div>
               </div>
             );

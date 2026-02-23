@@ -11,7 +11,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
     { id: 'strepen', icon: 'local_bar', label: 'Strepen' },
     { id: 'notifications', icon: 'notifications', label: 'Meldingen', badge: true },
     { id: 'agenda', icon: 'event', label: 'Agenda' },
-    { id: 'settings', icon: 'person', label: 'Profiel' },
+    { id: 'settings', icon: 'settings', label: 'Instellingen' },
   ];
 
   return (

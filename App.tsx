@@ -14,6 +14,9 @@ import { TeamDrankStockScreen } from './screens/TeamDrankStockScreen';
 import { TeamDrankBillingScreen } from './screens/TeamDrankBillingScreen';
 import { TeamDrankInvoicesScreen } from './screens/TeamDrankInvoicesScreen';
 import { TeamDrankArchiveScreen } from './screens/TeamDrankArchiveScreen';
+import { TeamDrankExcelPreviewScreen } from './screens/TeamDrankExcelPreviewScreen';
+import { TeamDrankBillingExcelPreviewScreen } from './screens/TeamDrankBillingExcelPreviewScreen';
+import { CredentialsScreen } from './screens/CredentialsScreen';
 import { NudgeSelectorScreen } from './screens/NudgeSelectorScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NewMessageScreen } from './screens/NewMessageScreen';
@@ -397,7 +400,7 @@ const App: React.FC = () => {
   // Handle Internal Routing (from Home dashboard)
   const handleInternalNavigate = (screenId: string) => {
     // Save previous screen for back navigation from sub-screens
-    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'team-drank-archive', 'my-invoice', 'quotes', 'quotes-manage'].includes(screenId)) {
+    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'team-drank-archive', 'team-drank-excel-preview', 'team-drank-billing-excel-preview', 'my-invoice', 'quotes', 'quotes-manage', 'credentials'].includes(screenId)) {
       setPreviousScreen(currentScreen);
     }
     
@@ -420,9 +423,12 @@ const App: React.FC = () => {
         'team-drank-billing',
         'team-drank-invoices',
         'team-drank-archive',
+        'team-drank-excel-preview',
+        'team-drank-billing-excel-preview',
         'my-invoice',
         'quotes',
-        'quotes-manage'
+        'quotes-manage',
+        'credentials'
       ];
       
       if (subModules.includes(screenId)) {
@@ -536,11 +542,15 @@ const App: React.FC = () => {
       case 'team-drank-stock':
         return <TeamDrankStockScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
       case 'team-drank-billing':
-        return <TeamDrankBillingScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
+        return <TeamDrankBillingScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} onNavigate={handleInternalNavigate} />;
       case 'team-drank-invoices':
         return <TeamDrankInvoicesScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
       case 'team-drank-archive':
         return <TeamDrankArchiveScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
+      case 'team-drank-excel-preview':
+        return <TeamDrankExcelPreviewScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
+      case 'team-drank-billing-excel-preview':
+        return <TeamDrankBillingExcelPreviewScreen onBack={() => handleInternalNavigate('team-drank-billing')} />;
         
       case 'agenda':
         return <AgendaScreen 
@@ -550,7 +560,9 @@ const App: React.FC = () => {
           events={events}
         />;
       case 'settings':
-        return <SettingsScreen onBack={handleBackToHome} />;
+        return <SettingsScreen onBack={handleBackToHome} onNavigate={handleInternalNavigate} />;
+      case 'credentials':
+        return <CredentialsScreen onBack={() => handleInternalNavigate('settings')} />;
       case 'agenda-manage':
         return <AgendaManageScreen 
           onBack={handleBackToHome} 

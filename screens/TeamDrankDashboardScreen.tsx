@@ -74,9 +74,6 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
                <span className="font-bold">Jupiler</span> (2 bakken), <span className="font-bold">Fanta</span> (4 blikjes).
                Bestel tijdig bij voor het weekend.
              </p>
-             <button className="mt-2 text-xs font-bold text-orange-600 dark:text-orange-400 bg-white dark:bg-orange-900/20 px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-900/40 transition-colors">
-               Nu Bestellen
-             </button>
            </div>
         </div>
 
@@ -88,7 +85,7 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
                onClick={() => onNavigate('team-drank-invoices')}
                className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
              >
-               <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+               <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                  <span className="material-icons-round">receipt_long</span>
                </div>
                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Facturen</span>
@@ -98,8 +95,8 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
                onClick={() => onNavigate('team-drank-stock')}
                className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
              >
-               <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                 <span className="material-icons-round">inventory</span>
+               <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">inventory_2</span>
                </div>
                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Voorraad</span>
              </button>
@@ -108,14 +105,14 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
                onClick={() => onNavigate('team-drank-billing')}
                className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
              >
-               <div className="w-10 h-10 rounded-full bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                 <span className="material-icons-round">handshake</span>
+               <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">attach_money</span>
                </div>
                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Drankrekeningen</span>
              </button>
 
              <button 
-               onClick={handleOpenExcel}
+               onClick={() => onNavigate('team-drank-excel-preview')}
                className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
              >
                <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center group-hover:scale-110 transition-transform">
