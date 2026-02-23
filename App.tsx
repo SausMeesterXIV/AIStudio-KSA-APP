@@ -16,13 +16,14 @@ import { TeamDrankInvoicesScreen } from './screens/TeamDrankInvoicesScreen';
 import { TeamDrankArchiveScreen } from './screens/TeamDrankArchiveScreen';
 import { TeamDrankExcelPreviewScreen } from './screens/TeamDrankExcelPreviewScreen';
 import { TeamDrankBillingExcelPreviewScreen } from './screens/TeamDrankBillingExcelPreviewScreen';
+import { TeamDrankStreaksScreen } from './screens/TeamDrankStreaksScreen';
 import { CredentialsScreen } from './screens/CredentialsScreen';
 import { NudgeSelectorScreen } from './screens/NudgeSelectorScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NewMessageScreen } from './screens/NewMessageScreen';
 import { MyInvoiceScreen } from './screens/MyInvoiceScreen';
 import { QuotesScreen } from './screens/QuotesScreen';
-import { Order, CartItem, Notification, User, Event, Quote, CountdownItem, StockItem, Drink } from './types';
+import { Order, CartItem, Notification, User, Event, Quote, CountdownItem, StockItem, Drink, Streak } from './types';
 import { getCurrentUser, MOCK_USERS } from './lib/data';
 import { supabase } from './lib/supabase';
 
@@ -37,6 +38,58 @@ const App: React.FC = () => {
   
   // Centralized drinks state
   const [drinks, setDrinks] = useState<Drink[]>([]);
+
+  // Centralized streaks state
+  const [streaks, setStreaks] = useState<Streak[]>([
+    {
+      id: 's1',
+      userId: '1', // Current user
+      drinkId: '2', // Bier
+      drinkName: 'Bier',
+      price: 1.20,
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 1)), // Yesterday
+    },
+    {
+      id: 's2',
+      userId: '2', // Luuk
+      drinkId: '1', // Cola
+      drinkName: 'Cola',
+      price: 1.00,
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 1)), // Yesterday
+    },
+    {
+      id: 's3',
+      userId: '1', // Current user
+      drinkId: '2', // Bier
+      drinkName: 'Bier',
+      price: 1.20,
+      timestamp: new Date(), // Today
+    },
+    {
+      id: 's4',
+      userId: '3', // Sarah
+      drinkId: '5', // Ice-Tea
+      drinkName: 'Ice-Tea',
+      price: 1.10,
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 2)), // 2 days ago
+    },
+    {
+      id: 's5',
+      userId: '1', // Current user
+      drinkId: '4', // Chips
+      drinkName: 'Chips',
+      price: 1.50,
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 7)), // Last week
+    },
+    {
+      id: 's6',
+      userId: '2', // Luuk
+      drinkId: '2', // Bier
+      drinkName: 'Bier',
+      price: 1.20,
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 8)), // Last week
+    },
+  ]);
 
   useEffect(() => {
     const fetchDrinks = async () => {
@@ -347,15 +400,30 @@ const App: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   };
 
-  const handleAddCost = (amount: number) => {
+  const handleAddCost = (amount: number, drink?: Drink) => {
     setBalance(prev => prev + amount);
+    if (drink) {
+      const newStreak: Streak = {
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        drinkId: drink.id,
+        drinkName: drink.name,
+        price: drink.price,
+        timestamp: new Date(),
+      };
+      setStreaks(prev => [newStreak, ...prev]);
+    }
+  };
+
+  const handleDeleteStreak = (id: string) => {
+    setStreaks(prev => prev.filter(s => s.id !== id));
   };
 
   const handleQuickStreep = () => {
     const drinkId = currentUser.quickDrinkId || '2'; // Default to Bier
     const drink = drinks.find(d => String(d.id) === String(drinkId));
     if (drink) {
-      handleAddCost(drink.price);
+      handleAddCost(drink.price, drink);
       handleAddNotification({
         type: 'official',
         sender: 'Systeem',
@@ -546,7 +614,12 @@ const App: React.FC = () => {
           users={users}
         />;
       case 'strepen-overview':
-        return <ConsumptionOverviewScreen onBack={() => handleInternalNavigate(previousScreen)} />;
+        return <ConsumptionOverviewScreen 
+          onBack={() => handleInternalNavigate(previousScreen)} 
+          users={users}
+          drinks={drinks}
+          streaks={streaks}
+        />;
       case 'nudge-selector':
         return <NudgeSelectorScreen onBack={() => handleInternalNavigate(previousScreen)} />;
       case 'my-invoice':
@@ -641,6 +714,14 @@ const App: React.FC = () => {
         return <TeamDrankExcelPreviewScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
       case 'team-drank-billing-excel-preview':
         return <TeamDrankBillingExcelPreviewScreen onBack={() => handleInternalNavigate('team-drank-billing')} />;
+      case 'team-drank-streaks':
+        return <TeamDrankStreaksScreen 
+          onBack={() => handleInternalNavigate('team-drank-dashboard')}
+          streaks={streaks}
+          users={users}
+          drinks={drinks}
+          onDeleteStreak={handleDeleteStreak}
+        />;
         
       case 'agenda':
         return <AgendaScreen 

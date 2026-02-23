@@ -1,13 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { MOCK_USERS, CURRENT_USER_ID } from '../lib/data';
+import { ChevronBack } from '../components/ChevronBack';
+import { User, Drink, Streak } from '../types';
 
 interface ConsumptionOverviewScreenProps {
   onBack: () => void;
+  users: User[];
+  drinks: Drink[];
+  streaks: Streak[];
 }
 
-export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps> = ({ onBack }) => {
+export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps> = ({
+  onBack,
+  users,
+  drinks,
+  streaks
+}) => {
   // Sort state
-  const [sortOption, setSortOption] = useState<'alphabetical' | 'BIER' | 'COLA' | 'WATER' | 'CHIPS'>('alphabetical');
+  const [sortOption, setSortOption] = useState<'alphabetical' | string>('alphabetical');
   const [showSortMenu, setShowSortMenu] = useState(false);
   
   // Date State
@@ -42,41 +52,61 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
 
   // Use MOCK_USERS to generate table data
   // Wrapped in useMemo with currentDate dependency to simulate "fetching new data" for different weeks
-  const { sortedData, totals } = useMemo(() => {
-    const columns = ['NAAM', 'BIER', 'COLA', 'WATER', 'CHIPS'];
-    
-    // Transform MOCK_USERS into table data with slight randomization based on week to simulate changing data
-    const weekNum = getWeekNumber(currentDate);
-    
-    const initialData = MOCK_USERS.map((user, idx) => ({
-      id: user.id, // Store ID to identify current user later
-      name: user.nickname || user.name, 
-      values: [
-        Math.max(0, Math.floor(Math.random() * 15) + (weekNum % 2 === 0 ? -2 : 2)), // Bier variation
-        Math.max(0, Math.floor(Math.random() * 8)),  // Cola
-        Math.max(0, Math.floor(Math.random() * 5)),  // Water
-        Math.max(0, Math.floor(Math.random() * 4))   // Chips
-      ]
-    }));
+  const { sortedData, totals, dynamicColumns } = useMemo(() => {
+    const startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() === 0 ? 6 : startOfWeek.getDay() - 1)); // Monday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const filteredStreaks = streaks.filter(streak => {
+      const streakDate = new Date(streak.timestamp);
+      return streakDate >= startOfWeek && streakDate <= endOfWeek;
+    });
+
+    // Dynamically get all unique drink names from the available drinks
+    const drinkNames = drinks.map(drink => drink.name.toUpperCase());
+    const columns = ['NAAM', ...drinkNames];
+
+    const consumptionByUser: { [userId: string]: { [drinkName: string]: number } } = {};
+
+    filteredStreaks.forEach(streak => {
+      if (!consumptionByUser[streak.userId]) {
+        consumptionByUser[streak.userId] = {};
+      }
+      const drinkNameUpper = streak.drinkName.toUpperCase();
+      consumptionByUser[streak.userId][drinkNameUpper] = (consumptionByUser[streak.userId][drinkNameUpper] || 0) + 1;
+    });
+
+    const initialData = users.map(user => {
+      const userConsumption = consumptionByUser[user.id] || {};
+      const values = drinkNames.map(drinkName => userConsumption[drinkName] || 0);
+      return {
+        id: user.id,
+        name: user.nickname || user.name,
+        values: values,
+      };
+    });
 
     // Calculate totals
     const calculatedTotals = initialData.reduce((acc, row) => {
       return acc.map((total, idx) => total + row.values[idx]);
-    }, [0, 0, 0, 0]);
+    }, new Array(drinkNames.length).fill(0));
 
     // Sort Logic
     let data = [...initialData];
     if (sortOption === 'alphabetical') {
       data = data.sort((a, b) => a.name.localeCompare(b.name));
     } else {
-      const colIndex = columns.indexOf(sortOption) - 1;
+      const colIndex = drinkNames.indexOf(sortOption as string);
       if (colIndex >= 0) {
         data = data.sort((a, b) => b.values[colIndex] - a.values[colIndex]);
       }
     }
 
     // PIN CURRENT USER TO TOP
-    // Find the current user in the sorted list, remove them, and unshift to the front
     const currentUserIndex = data.findIndex(u => u.id === CURRENT_USER_ID);
     if (currentUserIndex > -1) {
       const currentUserRow = data[currentUserIndex];
@@ -84,64 +114,57 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
       data.unshift(currentUserRow); // Add to the very beginning
     }
 
-    return { sortedData: data, totals: calculatedTotals };
-  }, [sortOption, currentDate]);
+    return { sortedData: data, totals: calculatedTotals, dynamicColumns: columns };
+  }, [sortOption, currentDate, streaks, users, drinks]);
 
-  const columns = ['NAAM', 'BIER', 'COLA', 'WATER', 'CHIPS'];
+  const columns = dynamicColumns;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark relative">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-white font-sans transition-colors duration-200">
       {/* Header */}
-      <header className="bg-primary text-white pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 transition-all">
-        <div className="flex justify-between items-center mb-4">
-          <button 
-            onClick={onBack}
-            className="p-1 rounded-full hover:bg-white/20 transition-colors"
-          >
-            <span className="material-icons-round text-2xl">arrow_back_ios_new</span>
-          </button>
-          <button 
-            onClick={() => setShowSortMenu(true)}
-            className="p-1 rounded-full hover:bg-white/20 transition-colors"
-          >
-            <span className="material-icons-round text-2xl">sort</span>
-          </button>
-        </div>
-        <div className="pb-2">
-          <h1 className="text-2xl font-bold mb-1">Consumptieoverzicht</h1>
-          <p className="text-blue-100 text-sm font-medium">Leidingsgroep Totaal</p>
+      <header className="px-4 py-4 flex items-center gap-4 sticky top-0 bg-gray-50/80 dark:bg-[#0f172a]/80 backdrop-blur-md z-10 transition-colors border-b border-gray-200/50 dark:border-gray-800/50">
+        <ChevronBack onClick={onBack} />
+        <div>
+          <h1 className="text-2xl font-bold leading-tight tracking-tight">Consumptieoverzicht</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Leidingsgroep Totaal</p>
         </div>
       </header>
 
-      <main className="flex-1 px-4 -mt-8 pb-6 overflow-hidden flex flex-col z-20">
-        {/* Date Selector Card */}
-        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 px-4 py-5 flex items-center justify-between mb-4 mx-2 transition-colors">
+      <main className="flex-1 px-4 pb-24 overflow-y-auto space-y-6">
+        {/* Week Navigation */}
+        <div className="flex items-center justify-between bg-white dark:bg-[#1e293b] p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 mt-4">
           <button 
             onClick={() => changeWeek('prev')}
-            className="p-3 text-primary dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors active:scale-95"
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400"
           >
             <span className="material-icons-round">chevron_left</span>
           </button>
-          
           <div className="text-center flex flex-col gap-1">
             <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Week {getWeekNumber(currentDate)}</p>
             <p className="text-gray-900 dark:text-white font-bold text-lg leading-none">{getWeekRange(currentDate)}</p>
           </div>
-          
           <button 
             onClick={() => changeWeek('next')}
-            className="p-3 text-primary dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors active:scale-95"
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400"
           >
             <span className="material-icons-round">chevron_right</span>
           </button>
         </div>
 
         {/* Active Sort Indicator */}
-        <div className="mx-2 mb-2 px-2 flex items-center gap-2">
-          <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Gesorteerd op:</span>
-          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-semibold truncate">
-            {sortOption === 'alphabetical' ? 'Naam (A-Z)' : sortOption}
-          </span>
+        <div className="mx-2 mb-2 px-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Gesorteerd op:</span>
+            <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-semibold truncate">
+              {sortOption === 'alphabetical' ? 'Naam (A-Z)' : sortOption}
+            </span>
+          </div>
+          <button 
+            onClick={() => setShowSortMenu(true)}
+            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400"
+          >
+            <span className="material-icons-round">sort</span>
+          </button>
         </div>
 
         {/* Table Container */}
@@ -161,9 +184,6 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
                     >
                       <div className={`flex items-center gap-1 ${idx !== 0 ? 'justify-center' : ''}`}>
                          {col}
-                         {sortOption === (idx === 0 ? 'alphabetical' : col) && (
-                           <span className="material-icons-round text-[14px]">{idx === 0 ? 'arrow_downward' : 'arrow_downward'}</span>
-                         )}
                       </div>
                     </th>
                   ))}
@@ -230,7 +250,7 @@ export const ConsumptionOverviewScreen: React.FC<ConsumptionOverviewScreenProps>
                 {columns.slice(1).map(col => (
                    <button 
                     key={col}
-                    onClick={() => { setSortOption(col as any); setShowSortMenu(false); }}
+                    onClick={() => { setSortOption(col); setShowSortMenu(false); }}
                     className={`w-full p-4 rounded-xl flex items-center justify-between ${sortOption === col ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800' : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
                   >
                     <span className="font-bold">{col}</span>

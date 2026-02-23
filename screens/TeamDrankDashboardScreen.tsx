@@ -171,6 +171,16 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
              </button>
 
              <button 
+               onClick={() => onNavigate('team-drank-streaks')}
+               className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+             >
+               <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">format_list_numbered</span>
+               </div>
+               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Alle Strepen</span>
+             </button>
+
+             <button 
                onClick={() => setIsSettingsOpen(true)}
                className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group col-span-2"
              >
