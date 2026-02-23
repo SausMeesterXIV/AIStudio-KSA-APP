@@ -1,139 +1,268 @@
 import React from 'react';
 import { ChevronBack } from '../components/ChevronBack';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface TeamDrankDashboardScreenProps {
   onBack: () => void;
+  onNavigate: (screen: string) => void;
 }
 
-export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> = ({ onBack }) => {
+export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> = ({ onBack, onNavigate }) => {
+  const [excelLink, setExcelLink] = React.useState('');
+  const [billingExcelLink, setBillingExcelLink] = React.useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const [tempLink, setTempLink] = React.useState('');
+  const [tempBillingLink, setTempBillingLink] = React.useState('');
+
+  React.useEffect(() => {
+    const savedLink = localStorage.getItem('teamDrankExcelLink');
+    if (savedLink) {
+      setExcelLink(savedLink);
+      setTempLink(savedLink);
+    }
+    const savedBillingLink = localStorage.getItem('teamDrankBillingExcelLink');
+    if (savedBillingLink) {
+      setBillingExcelLink(savedBillingLink);
+      setTempBillingLink(savedBillingLink);
+    }
+  }, []);
+
+  const handleSaveLink = () => {
+    localStorage.setItem('teamDrankExcelLink', tempLink);
+    setExcelLink(tempLink);
+    localStorage.setItem('teamDrankBillingExcelLink', tempBillingLink);
+    setBillingExcelLink(tempBillingLink);
+    setIsSettingsOpen(false);
+  };
+
+  const handleOpenExcel = () => {
+    if (excelLink) {
+      window.open(excelLink, '_blank');
+    } else {
+      alert('Er is nog geen Excel link ingesteld. Ga naar instellingen om deze toe te voegen.');
+    }
+  };
+
+  const data = [
+    { name: 'Bier', value: 450, color: '#3b82f6' }, // Blue-500
+    { name: 'Fris', value: 230, color: '#ef4444' }, // Red-500
+    { name: 'Water', value: 80, color: '#0ea5e9' }, // Sky-500
+    { name: 'Snacks', value: 40, color: '#f59e0b' }, // Amber-500
+  ];
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-white font-sans transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-white font-sans transition-colors duration-200 relative">
       {/* Header */}
-      <header className="px-4 py-6 flex items-center gap-4 sticky top-0 bg-gray-50 dark:bg-[#0f172a] z-10 transition-colors">
+      <header className="px-4 py-6 flex items-center gap-4 sticky top-0 bg-gray-50/80 dark:bg-[#0f172a]/80 backdrop-blur-md z-10 transition-colors border-b border-gray-200/50 dark:border-gray-800/50">
         <ChevronBack onClick={onBack} />
         <div>
-           <h1 className="text-2xl font-bold leading-tight">Totaaloverzicht</h1>
-           <p className="text-sm text-gray-500 dark:text-gray-400">Team Drank Dashboard</p>
+           <h1 className="text-2xl font-bold leading-tight tracking-tight">Team Drank</h1>
+           <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Dashboard & Statistieken</p>
         </div>
       </header>
       
-      {/* Main content remains unchanged */}
-      <main className="flex-1 px-4 pb-24 overflow-y-auto space-y-4">
-        {/* Hero Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-3xl p-6 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 relative overflow-hidden text-white">
-          <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">Live</div>
-          <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Totaal gezette strepen</p>
-          <div className="flex items-baseline gap-2">
-             <span className="text-6xl font-bold text-white">800</span>
-             <span className="text-lg text-blue-100">consumpties</span>
-          </div>
-          <div className="flex items-center gap-1 mt-2 text-blue-100 text-sm">
-            <span className="material-icons-round text-base">trending_up</span>
-            <span>+124 sinds gisteren</span>
-          </div>
-        </div>
-
-        {/* Warning Card */}
-        <div className="bg-orange-50 dark:bg-[#2a1c15] border border-orange-200 dark:border-orange-900/50 rounded-2xl p-4 flex gap-4 items-start">
-           <span className="material-icons-round text-orange-600 dark:text-orange-500 mt-0.5">warning</span>
+      <main className="flex-1 px-4 pb-24 overflow-y-auto space-y-6">
+        {/* Alerts Section */}
+        <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/30 rounded-2xl p-4 flex gap-4 items-start relative overflow-hidden">
+           <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+           <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-500 shrink-0">
+             <span className="material-icons-round">inventory_2</span>
+           </div>
            <div>
-             <h3 className="text-orange-700 dark:text-orange-500 font-bold text-sm mb-1">Voorraad Waarschuwing</h3>
-             <p className="text-orange-800/80 dark:text-orange-100/70 text-xs leading-relaxed">
-               De voorraad <span className="font-bold">Speciale Bieren</span> is bijna op. 
-               Overweeg bij te bestellen voor de avondactiviteit.
+             <h3 className="text-orange-800 dark:text-orange-400 font-bold text-sm mb-1">Lage Voorraad</h3>
+             <p className="text-orange-700/80 dark:text-orange-300/70 text-xs leading-relaxed">
+               <span className="font-bold">Jupiler</span> (2 bakken), <span className="font-bold">Fanta</span> (4 blikjes).
+               Bestel tijdig bij voor het weekend.
              </p>
+             <button className="mt-2 text-xs font-bold text-orange-600 dark:text-orange-400 bg-white dark:bg-orange-900/20 px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-900/40 transition-colors">
+               Nu Bestellen
+             </button>
            </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          
-          {/* Chart Card */}
-          <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
-             <h3 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase mb-4">Verdeling</h3>
-             <div className="flex items-center justify-center relative h-32">
-                {/* CSS Conic Gradient for Donut Chart */}
-                <div className="w-28 h-28 rounded-full" style={{ background: 'conic-gradient(#3b82f6 0% 65%, #1e40af 65% 100%)' }}></div>
-                <div className="absolute inset-0 m-auto w-24 h-24 bg-white dark:bg-[#1e293b] rounded-full flex flex-col items-center justify-center transition-colors">
-                   <span className="text-xs text-gray-500 dark:text-gray-400">Top</span>
-                   <span className="text-lg font-bold text-blue-600 dark:text-blue-400">Bier</span>
-                </div>
-             </div>
-             <div className="flex justify-center gap-3 mt-4 text-[10px] text-gray-500 dark:text-gray-400">
-                <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Alc.</div>
-                <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-800"></span> Non-Alc.</div>
-             </div>
-          </div>
+        {/* Quick Actions Grid */}
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 px-1">Snelkoppelingen</h3>
+          <div className="grid grid-cols-2 gap-3">
+             <button 
+               onClick={() => onNavigate('team-drank-invoices')}
+               className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+             >
+               <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">receipt_long</span>
+               </div>
+               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Facturen</span>
+             </button>
+             
+             <button 
+               onClick={() => onNavigate('team-drank-stock')}
+               className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+             >
+               <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">inventory</span>
+               </div>
+               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Voorraad</span>
+             </button>
 
-          <div className="space-y-4">
-            {/* Peak Time */}
-            <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm h-[calc(50%-0.5rem)] flex flex-col justify-center transition-colors">
-              <h3 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase mb-1">Hoogste Piek</h3>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">22:00u</div>
-              <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                 <span className="material-icons-round text-[10px]">arrow_upward</span> 145/uur
-              </div>
-            </div>
+             <button 
+               onClick={() => onNavigate('team-drank-billing')}
+               className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+             >
+               <div className="w-10 h-10 rounded-full bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">handshake</span>
+               </div>
+               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Drankrekeningen</span>
+             </button>
 
-            {/* Grootverbruiker */}
-             <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm h-[calc(50%-0.5rem)] flex flex-col justify-center transition-colors">
-              <h3 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase mb-1">Grootverbruiker</h3>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">Leiding</div>
-              <div className="text-xs text-gray-500">45% van totaal</div>
-            </div>
-          </div>
-        </div>
+             <button 
+               onClick={handleOpenExcel}
+               className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+             >
+               <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">table_view</span>
+               </div>
+               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Excel Sheet</span>
+             </button>
 
-        {/* Categories List */}
-        <div className="pt-2">
-          <div className="flex justify-between items-center mb-3">
-             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Per Categorie</h3>
-             <button className="text-blue-600 dark:text-blue-400 text-xs font-bold">Details bekijken</button>
-          </div>
-          
-          <div className="bg-white dark:bg-[#1e293b] rounded-2xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 shadow-sm transition-colors">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-100 dark:bg-yellow-500/10 rounded-lg text-yellow-600 dark:text-yellow-500">
-                  <span className="material-icons-round">sports_bar</span>
-                </div>
-                <div>
-                   <h4 className="font-bold text-sm text-gray-900 dark:text-white">Bier & Pils</h4>
-                   <p className="text-xs text-gray-500">Jupiler, Stella</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-bold text-gray-900 dark:text-white">450</div>
-                <div className="text-xs text-gray-500">56%</div>
-              </div>
-            </div>
+             <button 
+               onClick={() => onNavigate('team-drank-archive')}
+               className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+             >
+               <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">history</span>
+               </div>
+               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Archief</span>
+             </button>
 
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 dark:bg-red-500/10 rounded-lg text-red-600 dark:text-red-500">
-                  <span className="material-icons-round">local_drink</span>
-                </div>
-                <div>
-                   <h4 className="font-bold text-sm text-gray-900 dark:text-white">Frisdrank</h4>
-                   <p className="text-xs text-gray-500">Cola, Fanta, Ice-Tea</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-bold text-gray-900 dark:text-white">230</div>
-                <div className="text-xs text-gray-500">28%</div>
-              </div>
-            </div>
+             <button 
+               onClick={() => setIsSettingsOpen(true)}
+               className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group col-span-2"
+             >
+               <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                 <span className="material-icons-round">settings</span>
+               </div>
+               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Instellingen</span>
+             </button>
           </div>
         </div>
-
       </main>
 
-      {/* FAB */}
-      <div className="fixed bottom-8 left-0 right-0 flex justify-center z-20 pointer-events-none">
-        <button className="pointer-events-auto h-14 w-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/40 text-white hover:scale-105 active:scale-95 transition-all">
-          <span className="material-icons-round text-3xl">add</span>
-        </button>
-      </div>
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+           <div className="bg-white dark:bg-[#1e293b] w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-gray-100 dark:border-gray-700 max-h-[85vh] overflow-y-auto flex flex-col">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 shrink-0">Instellingen</h3>
+              
+              <div className="overflow-y-auto pr-1 custom-scrollbar">
+                {/* Excel Link Section */}
+                <div className="mb-6">
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Link naar Voorraad Excel</label>
+                  <input 
+                    type="url" 
+                    value={tempLink}
+                    onChange={(e) => setTempLink(e.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                  />
+                  
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Link naar Drankrekening Excel</label>
+                  <input 
+                    type="url" 
+                    value={tempBillingLink}
+                    onChange={(e) => setTempBillingLink(e.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-2">
+                    Plak hier de links naar de online Excel bestanden.
+                  </p>
+                </div>
+
+                {/* Prices & Financial Section */}
+                <div className="mb-6">
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">Prijzen & Financieel</label>
+                  <div className="space-y-3">
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Bier (Jupiler/Stella)</span>
+                        <div className="relative w-24">
+                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
+                          <input type="number" defaultValue="0.80" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                     </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Frisdrank</span>
+                        <div className="relative w-24">
+                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
+                          <input type="number" defaultValue="0.80" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                     </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Speciale Bieren</span>
+                        <div className="relative w-24">
+                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
+                          <input type="number" defaultValue="1.50" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                     </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Snacks</span>
+                        <div className="relative w-24">
+                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
+                          <input type="number" defaultValue="0.50" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                     </div>
+                  </div>
+                </div>
+
+                {/* Reset & Archive Section */}
+                <div className="mb-6">
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">Reset & Archief</label>
+                  <div className="space-y-4">
+                     <div>
+                       <button className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left group">
+                          <div className="flex items-center gap-3">
+                             <span className="material-icons-round text-gray-400 group-hover:text-blue-500">inventory_2</span>
+                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Periode Archiveren</span>
+                          </div>
+                          <span className="material-icons-round text-gray-400 text-sm">chevron_right</span>
+                       </button>
+                       <p className="text-[10px] text-gray-400 mt-1.5 px-1 leading-relaxed">
+                         Slaat de huidige tellingen en verbruik op in de historiek en zet de tellers op nul voor de nieuwe periode.
+                       </p>
+                     </div>
+
+                     <div>
+                       <button className="w-full flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-left group">
+                          <div className="flex items-center gap-3">
+                             <span className="material-icons-round text-red-400 group-hover:text-red-600">restart_alt</span>
+                             <span className="text-sm font-medium text-red-700 dark:text-red-400">Stock Resetten</span>
+                          </div>
+                          <span className="material-icons-round text-red-300 text-sm">warning</span>
+                       </button>
+                       <p className="text-[10px] text-gray-400 mt-1.5 px-1 leading-relaxed">
+                         Zet alle voorraadaantallen volledig op nul. Gebruik dit enkel na een grote fout of bij een volledige herstart.
+                       </p>
+                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto shrink-0">
+                <button 
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="flex-1 py-3 rounded-xl font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Annuleren
+                </button>
+                <button 
+                  onClick={handleSaveLink}
+                  className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+                >
+                  Opslaan
+                </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

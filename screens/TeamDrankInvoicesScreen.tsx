@@ -24,10 +24,10 @@ export const TeamDrankInvoicesScreen: React.FC<TeamDrankInvoicesScreenProps> = (
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-white font-sans transition-colors duration-200">
       {/* Header */}
-      <header className="px-4 py-4 sticky top-0 bg-gray-50 dark:bg-[#0f172a] z-10 border-b border-gray-200 dark:border-gray-800/50 transition-colors">
+      <header className="px-4 py-4 sticky top-0 bg-gray-50/95 dark:bg-[#0f172a]/95 backdrop-blur-sm z-10 border-b border-gray-200/50 dark:border-gray-800/50 transition-colors">
         <div className="flex items-center gap-4 mb-4">
-          <button onClick={onBack} className="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-             <span className="material-icons-round text-2xl">arrow_back_ios_new</span>
+          <button onClick={onBack} className="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+             <span className="material-icons-round text-2xl">arrow_back</span>
           </button>
           <div className="flex-1">
              <h1 className="text-xl font-bold leading-tight">Facturen & Controle</h1>
@@ -91,7 +91,7 @@ export const TeamDrankInvoicesScreen: React.FC<TeamDrankInvoicesScreenProps> = (
                 {comparisonData.map((item) => {
                    const diff = item.consumed - item.purchased;
                    return (
-                    <div key={item.id} className="bg-white dark:bg-[#1e293b] p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
+                    <div key={item.id} className="bg-white dark:bg-[#1e293b] p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors">
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="font-bold text-gray-900 dark:text-white">{item.name}</h4>
                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${diff < -10 ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/50'}`}>
@@ -120,21 +120,22 @@ export const TeamDrankInvoicesScreen: React.FC<TeamDrankInvoicesScreenProps> = (
         ) : (
           <div className="space-y-4">
             {/* Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-[#1e293b]/30 hover:bg-gray-100 dark:hover:bg-[#1e293b]/50 transition-colors cursor-pointer group">
-               <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-600/20 text-blue-600 dark:text-blue-500 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                 <span className="material-icons-round text-2xl">cloud_upload</span>
+            <div className="border-2 border-dashed border-blue-300 dark:border-blue-700/50 rounded-2xl p-8 flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors cursor-pointer group">
+               <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-600/20 text-blue-600 dark:text-blue-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-sm">
+                 <span className="material-icons-round text-3xl">cloud_upload</span>
                </div>
-               <p className="font-bold text-sm text-gray-700 dark:text-gray-300">Factuur uploaden</p>
-               <p className="text-xs text-gray-500 mt-1">PDF of Foto (Max 5MB)</p>
+               <p className="font-bold text-sm text-gray-900 dark:text-white">Factuur uploaden</p>
+               <p className="text-xs text-gray-500 mt-1">Sleep bestanden hierheen of klik om te bladeren</p>
+               <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-wide">PDF, JPG, PNG (MAX 5MB)</p>
             </div>
 
             {/* Invoices List */}
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">Verwerkte Facturen</h3>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1 mt-6">Verwerkte Facturen</h3>
             <div className="space-y-3">
                {invoices.map((inv) => (
-                 <div key={inv.id} className="bg-white dark:bg-[#1e293b] p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex justify-between items-center shadow-sm">
+                 <div key={inv.id} className="bg-white dark:bg-[#1e293b] p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex justify-between items-center shadow-sm hover:shadow-md transition-all cursor-pointer group">
                     <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                       <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500 group-hover:text-blue-500 transition-colors">
                           <span className="material-icons-round">description</span>
                        </div>
                        <div>
@@ -144,7 +145,10 @@ export const TeamDrankInvoicesScreen: React.FC<TeamDrankInvoicesScreenProps> = (
                     </div>
                     <div className="text-right">
                        <div className="font-bold text-gray-900 dark:text-white">€ {inv.amount.toFixed(2)}</div>
-                       <div className="text-[10px] text-green-600 dark:text-green-400">Verwerkt</div>
+                       <div className="text-[10px] text-green-600 dark:text-green-400 flex items-center justify-end gap-1">
+                         <span className="material-icons-round text-[10px]">check_circle</span>
+                         Verwerkt
+                       </div>
                     </div>
                  </div>
                ))}
@@ -154,7 +158,7 @@ export const TeamDrankInvoicesScreen: React.FC<TeamDrankInvoicesScreenProps> = (
       </main>
 
       {/* Footer Actions */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-gray-50 dark:bg-[#0f172a] border-t border-gray-200 dark:border-gray-800 z-20 flex gap-3 transition-colors">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-gray-50/90 dark:bg-[#0f172a]/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 z-20 flex gap-3 transition-colors">
         {activeTab === 'vergelijking' ? (
            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
              <span className="material-icons-round">assessment</span>

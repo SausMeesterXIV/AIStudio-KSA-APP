@@ -13,6 +13,7 @@ import { TeamDrankDashboardScreen } from './screens/TeamDrankDashboardScreen';
 import { TeamDrankStockScreen } from './screens/TeamDrankStockScreen';
 import { TeamDrankBillingScreen } from './screens/TeamDrankBillingScreen';
 import { TeamDrankInvoicesScreen } from './screens/TeamDrankInvoicesScreen';
+import { TeamDrankArchiveScreen } from './screens/TeamDrankArchiveScreen';
 import { NudgeSelectorScreen } from './screens/NudgeSelectorScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NewMessageScreen } from './screens/NewMessageScreen';
@@ -396,7 +397,7 @@ const App: React.FC = () => {
   // Handle Internal Routing (from Home dashboard)
   const handleInternalNavigate = (screenId: string) => {
     // Save previous screen for back navigation from sub-screens
-    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'my-invoice', 'quotes', 'quotes-manage'].includes(screenId)) {
+    if (['strepen-overview', 'nudge-selector', 'new-message', 'roles-manage', 'team-drank-dashboard', 'team-drank-stock', 'team-drank-billing', 'team-drank-invoices', 'team-drank-archive', 'my-invoice', 'quotes', 'quotes-manage'].includes(screenId)) {
       setPreviousScreen(currentScreen);
     }
     
@@ -418,6 +419,7 @@ const App: React.FC = () => {
         'team-drank-stock',
         'team-drank-billing',
         'team-drank-invoices',
+        'team-drank-archive',
         'my-invoice',
         'quotes',
         'quotes-manage'
@@ -530,13 +532,15 @@ const App: React.FC = () => {
       
       // Team Drank Screens
       case 'team-drank-dashboard':
-        return <TeamDrankDashboardScreen onBack={handleBackToHome} />;
+        return <TeamDrankDashboardScreen onBack={handleBackToHome} onNavigate={handleInternalNavigate} />;
       case 'team-drank-stock':
-        return <TeamDrankStockScreen onBack={handleBackToHome} />;
+        return <TeamDrankStockScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
       case 'team-drank-billing':
-        return <TeamDrankBillingScreen onBack={handleBackToHome} />;
+        return <TeamDrankBillingScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
       case 'team-drank-invoices':
-        return <TeamDrankInvoicesScreen onBack={handleBackToHome} />;
+        return <TeamDrankInvoicesScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
+      case 'team-drank-archive':
+        return <TeamDrankArchiveScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
         
       case 'agenda':
         return <AgendaScreen 

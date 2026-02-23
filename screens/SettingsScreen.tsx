@@ -108,11 +108,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
                    value={nickname} 
                    onChange={(e) => setNickname(e.target.value)}
                    placeholder="Kies een bijnaam..."
-                   className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                   className="flex-1 min-w-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                  />
                  <button 
                   onClick={handleSaveNickname}
-                  className="bg-blue-600 text-white px-4 rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors"
+                  className="shrink-0 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors"
                  >
                    Opslaan
                  </button>
