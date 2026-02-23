@@ -22,13 +22,62 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NewMessageScreen } from './screens/NewMessageScreen';
 import { MyInvoiceScreen } from './screens/MyInvoiceScreen';
 import { QuotesScreen } from './screens/QuotesScreen';
-import { Order, CartItem, Notification, User, Event, Quote, CountdownItem } from './types';
+import { Order, CartItem, Notification, User, Event, Quote, CountdownItem, StockItem, Drink } from './types';
 import { getCurrentUser, MOCK_USERS } from './lib/data';
+import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [currentScreen, setCurrentScreen] = useState('home');
   const [previousScreen, setPreviousScreen] = useState('home');
+  
+  // Centralized user state
+  const [currentUser, setCurrentUser] = useState<User>(() => getCurrentUser());
+  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  
+  // Centralized drinks state
+  const [drinks, setDrinks] = useState<Drink[]>([]);
+
+  useEffect(() => {
+    const fetchDrinks = async () => {
+      try {
+        const { data } = await supabase.from('dranken').select('*').order('name');
+        if (data && data.length > 0) {
+          setDrinks(data);
+        } else {
+          // Fallback
+          setDrinks([
+            { id: '1', name: 'Cola', price: 1.00 },
+            { id: '2', name: 'Bier', price: 1.20 },
+            { id: '3', name: 'Water', price: 0.80 },
+            { id: '4', name: 'Chips', price: 1.50 },
+            { id: '5', name: 'Ice-Tea', price: 1.10 },
+          ]);
+        }
+      } catch (e) {
+        setDrinks([
+          { id: '1', name: 'Cola', price: 1.00 },
+          { id: '2', name: 'Bier', price: 1.20 },
+          { id: '3', name: 'Water', price: 0.80 },
+          { id: '4', name: 'Chips', price: 1.50 },
+          { id: '5', name: 'Ice-Tea', price: 1.10 },
+        ]);
+      }
+    };
+    fetchDrinks();
+  }, []);
+
+  // Centralized stock state
+  const [stockItems, setStockItems] = useState<StockItem[]>([
+    { id: 1, name: 'Stella Vaten (50L)', label: 'Kampvuuravond', category: 'Standaard', count: 3, unit: 'stuks', exp: '12/10/24', urgent: true, icon: 'sports_bar', color: 'bg-yellow-500' },
+    { id: 2, name: 'Cola Kratten (24x25cl)', label: 'Startdag', category: 'Standaard', count: 8, unit: 'kratt.', exp: '01/05/25', urgent: false, icon: 'local_drink', color: 'bg-red-900' },
+    { id: 3, name: 'Lays Chips Paprika', label: 'Fuif', category: 'Evenementen', count: 12, unit: 'dozen', exp: '15/11/24', urgent: false, icon: 'tapas', color: 'bg-yellow-200 text-yellow-800' },
+    { id: 4, name: "Diepvries Pizza's", label: 'Leidersweekend', category: "Extra's", count: 5, unit: 'stuks', exp: '20/06/25', urgent: false, icon: 'local_pizza', color: 'bg-orange-500' },
+    { id: 5, name: 'Water Plat (1.5L)', label: 'Sportdag', category: 'Standaard', count: 24, unit: 'flessen', exp: '01/01/26', urgent: false, icon: 'water_drop', color: 'bg-blue-400' },
+    { id: 6, name: 'Jenever Bessen', label: 'Kerstmarkt', category: 'Evenementen', count: 2, unit: 'flessen', exp: 'Morgen', urgent: true, icon: 'liquor', color: 'bg-green-500' },
+    { id: 7, name: 'Cara Pils (33cl)', label: 'Leiding', category: "Extra's", count: 48, unit: 'blikken', exp: '01/01/26', urgent: false, icon: 'sports_bar', color: 'bg-red-500' },
+    { id: 8, name: 'Gin (Bombay)', label: 'Fuif', category: 'Evenementen', count: 3, unit: 'flessen', exp: 'Onbeperkt', urgent: false, icon: 'local_bar', color: 'bg-blue-600' },
+  ]);
   
   // Centralized balance state (starts at 25.00 like on Home/Invoice screens)
   const [balance, setBalance] = useState(25.00);
@@ -109,8 +158,6 @@ const App: React.FC = () => {
   ]);
 
   const handleVoteQuote = (id: string, type: 'like' | 'dislike') => {
-    const currentUser = getCurrentUser();
-    
     setQuotes(prev => prev.map(q => {
       if (q.id === id) {
         const hasLiked = q.likes.includes(currentUser.id);
@@ -150,7 +197,6 @@ const App: React.FC = () => {
   };
 
   const handleAddQuote = (text: string, context: string, authorId: string) => {
-    const currentUser = getCurrentUser();
     const author = MOCK_USERS.find(u => u.id === authorId);
     
     // Use Nickname if available, else full name
@@ -305,9 +351,27 @@ const App: React.FC = () => {
     setBalance(prev => prev + amount);
   };
 
+  const handleQuickStreep = () => {
+    const drinkId = currentUser.quickDrinkId || '2'; // Default to Bier
+    const drink = drinks.find(d => String(d.id) === String(drinkId));
+    if (drink) {
+      handleAddCost(drink.price);
+      handleAddNotification({
+        type: 'official',
+        sender: 'Systeem',
+        role: '',
+        title: 'Quick Streep',
+        content: `Je hebt zojuist een ${drink.name} gestreept via de Quick Streep knop.`,
+        time: 'Zonet',
+        isRead: false,
+        action: '',
+        icon: 'local_bar',
+        color: 'bg-blue-100 dark:bg-blue-600/20 text-blue-600 dark:text-blue-500'
+      });
+    }
+  };
+
   const handlePlaceFryOrder = (items: CartItem[], totalCost: number, targetUser?: User) => {
-    const currentUser = getCurrentUser();
-    
     // Determine who the order is for
     const orderForUser = targetUser || currentUser;
 
@@ -351,7 +415,6 @@ const App: React.FC = () => {
     const orderToRemove = friesOrders.find(o => o.id === orderId);
     if (orderToRemove) {
       // Refund the cost (only if it was for current user in this simplified state)
-      const currentUser = getCurrentUser();
       if (orderToRemove.userId === currentUser.id) {
           handleAddCost(-orderToRemove.totalPrice);
       }
@@ -444,13 +507,18 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
+  const handleUpdateUser = (updatedUser: User) => {
+    if (updatedUser.id === currentUser.id) {
+      setCurrentUser(updatedUser);
+    }
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
   const handleBackToHome = () => {
     handleInternalNavigate('home');
   };
 
   const renderScreen = () => {
-    const currentUser = getCurrentUser();
-
     switch (currentScreen) {
       case 'home':
         return <HomeScreen 
@@ -459,6 +527,9 @@ const App: React.FC = () => {
           events={events} 
           quotes={quotes}
           countdowns={countdowns}
+          currentUser={currentUser}
+          onQuickStreep={handleQuickStreep}
+          quickDrink={drinks.find(d => String(d.id) === String(currentUser.quickDrinkId || '2'))}
         />;
       case 'strepen':
         return <StrepenScreen 
@@ -468,13 +539,18 @@ const App: React.FC = () => {
           onBack={handleBackToHome}
           currentBalance={balance}
           onAddCost={handleAddCost}
+          currentUser={currentUser}
+          onUpdateUser={handleUpdateUser}
+          drinks={drinks}
+          onUpdateDrinks={setDrinks}
+          users={users}
         />;
       case 'strepen-overview':
         return <ConsumptionOverviewScreen onBack={() => handleInternalNavigate(previousScreen)} />;
       case 'nudge-selector':
         return <NudgeSelectorScreen onBack={() => handleInternalNavigate(previousScreen)} />;
       case 'my-invoice':
-        return <MyInvoiceScreen onBack={handleBackToHome} balance={balance} />;
+        return <MyInvoiceScreen onBack={handleBackToHome} balance={balance} currentUser={currentUser} />;
       
       case 'notifications':
         return <NotificationsScreen 
@@ -494,6 +570,7 @@ const App: React.FC = () => {
           onAddQuote={handleAddQuote}
           onDeleteQuote={handleDeleteQuote}
           enableManagement={false}
+          currentUser={currentUser}
         />;
 
       // Admin View (Management Features) - Accessed via Sfeerbeheer Menu
@@ -505,6 +582,7 @@ const App: React.FC = () => {
           onAddQuote={handleAddQuote}
           onDeleteQuote={handleDeleteQuote}
           enableManagement={true}
+          currentUser={currentUser}
         />;
 
       case 'frieten':
@@ -521,6 +599,7 @@ const App: React.FC = () => {
           sessionStatus={friesSessionStatus}
           onSessionChange={setFriesSessionStatus}
           pickupTime={friesPickupTime}
+          currentUser={currentUser}
         />;
       case 'fries-overview':
         return <FriesOverviewScreen 
@@ -532,17 +611,28 @@ const App: React.FC = () => {
           onSetPickupTime={setFriesPickupTime}
           onArchiveSession={handleArchiveSession}
           onAddNotification={handleAddNotification}
+          currentUser={currentUser}
         />;
       case 'roles-manage':
         return <RolesManageScreen onBack={handleBackToHome} />;
       
       // Team Drank Screens
       case 'team-drank-dashboard':
-        return <TeamDrankDashboardScreen onBack={handleBackToHome} onNavigate={handleInternalNavigate} />;
+        return <TeamDrankDashboardScreen 
+          onBack={handleBackToHome} 
+          onNavigate={handleInternalNavigate} 
+          stockItems={stockItems} 
+          drinks={drinks}
+          onUpdateDrinks={setDrinks}
+        />;
       case 'team-drank-stock':
-        return <TeamDrankStockScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
+        return <TeamDrankStockScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} stockItems={stockItems} onUpdateStock={setStockItems} />;
       case 'team-drank-billing':
-        return <TeamDrankBillingScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} onNavigate={handleInternalNavigate} />;
+        return <TeamDrankBillingScreen 
+          onBack={() => handleInternalNavigate('team-drank-dashboard')} 
+          onNavigate={handleInternalNavigate} 
+          users={users}
+        />;
       case 'team-drank-invoices':
         return <TeamDrankInvoicesScreen onBack={() => handleInternalNavigate('team-drank-dashboard')} />;
       case 'team-drank-archive':
@@ -560,7 +650,7 @@ const App: React.FC = () => {
           events={events}
         />;
       case 'settings':
-        return <SettingsScreen onBack={handleBackToHome} onNavigate={handleInternalNavigate} />;
+        return <SettingsScreen onBack={handleBackToHome} onNavigate={handleInternalNavigate} currentUser={currentUser} onUpdateUser={handleUpdateUser} />;
       case 'credentials':
         return <CredentialsScreen onBack={() => handleInternalNavigate('settings')} />;
       case 'agenda-manage':
@@ -580,6 +670,9 @@ const App: React.FC = () => {
           events={events} 
           quotes={quotes}
           countdowns={countdowns}
+          currentUser={currentUser}
+          onQuickStreep={handleQuickStreep}
+          quickDrink={drinks.find(d => String(d.id) === String(currentUser.quickDrinkId || '2'))}
         />;
     }
   };

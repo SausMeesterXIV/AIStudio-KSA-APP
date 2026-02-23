@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { getCurrentUser } from '../lib/data';
-import { Event, Quote, CountdownItem } from '../types';
+import { Event, Quote, CountdownItem, User, Drink } from '../types';
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -8,10 +8,21 @@ interface HomeScreenProps {
   events: Event[];
   quotes: Quote[];
   countdowns?: CountdownItem[];
+  currentUser: User;
+  onQuickStreep?: () => void;
+  quickDrink?: Drink;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, events, quotes, countdowns = [] }) => {
-  const currentUser = getCurrentUser();
+export const HomeScreen: React.FC<HomeScreenProps> = ({ 
+  onNavigate, 
+  balance, 
+  events, 
+  quotes, 
+  countdowns = [], 
+  currentUser,
+  onQuickStreep,
+  quickDrink
+}) => {
   const displayName = currentUser.nickname || currentUser.name.split(' ')[0];
 
   // Logic to find next 2 upcoming events
@@ -94,9 +105,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
               <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-0.5">{item.title}</h2>
               <p className="text-sm font-medium text-white/90">Nog <span className="font-bold text-xl text-white">{daysLeft}</span> nachten!</p>
           </div>
-          <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg border border-white/10 flex flex-col items-center min-w-[3.5rem] shrink-0">
-              <span className="text-xl font-bold leading-none">{targetDay}</span>
-              <span className="text-[9px] uppercase font-bold mt-0.5">{targetMonth}</span>
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg border border-white/10 flex flex-col items-center min-w-[3.5rem]">
+                <span className="text-xl font-bold leading-none">{targetDay}</span>
+                <span className="text-[9px] uppercase font-bold mt-0.5">{targetMonth}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -106,14 +119,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
   return (
     <div className="flex flex-col min-h-screen pb-24 relative">
       {/* Header */}
-      <header className="px-6 py-6 flex justify-between items-center bg-surface-light dark:bg-surface-dark shadow-sm sticky top-0 z-40">
+      <header className="px-6 py-6 flex justify-between items-center bg-surface-light dark:bg-surface-dark shadow-sm">
         <div className="flex flex-col justify-center">
           <span className="text-sm font-bold text-primary dark:text-blue-500 uppercase tracking-wider mb-1">KSA Aalter</span>
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white leading-none">Welkom, {displayName}</h1>
         </div>
         <div 
           onClick={() => onNavigate('settings')}
-          className="h-12 w-12 rounded-full border-2 border-white dark:border-gray-700 shadow-md overflow-hidden cursor-pointer active:scale-95 transition-transform"
+          className="h-16 w-16 rounded-full border-2 border-white dark:border-gray-700 shadow-md overflow-hidden cursor-pointer active:scale-95 transition-transform"
         >
           <img 
             src={currentUser.avatar} 
@@ -183,11 +196,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, balance, eve
             onClick={() => onNavigate('strepen')}
             className="col-span-2 sm:col-span-1 bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow cursor-pointer group"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-primary dark:text-blue-300">
-                <span className="material-icons-round">local_bar</span>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-primary dark:text-blue-300">
+                  <span className="material-icons-round">local_bar</span>
+                </div>
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Strepen</h3>
               </div>
-              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Strepen</h3>
+              {onQuickStreep && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuickStreep();
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full shadow-md active:scale-90 active:bg-blue-800 transition-all flex items-center gap-1.5 border border-blue-500/20"
+                  title={`Quick ${quickDrink?.name || 'Drink'}`}
+                >
+                  <span className="material-icons-round text-sm">local_bar</span>
+                  <span className="text-xs font-bold">+1</span>
+                </button>
+              )}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-gray-700 transition-colors">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Drink } from '../types';
+import { Drink, User } from '../types';
 import { ChevronBack } from '../components/ChevronBack';
 import { supabase } from '../lib/supabase';
 import { MOCK_USERS } from '../lib/data';
@@ -11,6 +11,11 @@ interface StrepenScreenProps {
   onBack: () => void;
   currentBalance: number;
   onAddCost: (amount: number) => void;
+  currentUser: User;
+  onUpdateUser: (user: User) => void;
+  drinks: Drink[];
+  onUpdateDrinks: (drinks: Drink[]) => void;
+  users: User[];
 }
 
 export const StrepenScreen: React.FC<StrepenScreenProps> = ({ 
@@ -19,18 +24,23 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
   onNavigateInvoice, 
   onBack,
   currentBalance,
-  onAddCost
+  onAddCost,
+  currentUser,
+  onUpdateUser,
+  drinks,
+  onUpdateDrinks,
+  users
 }) => {
   // State to store count PER drink ID. Key = drinkId (string), Value = count (number)
   // Value 0 represents an empty input (user cleared it)
   const [drinkCounts, setDrinkCounts] = useState<Record<string, number>>({});
   
-  const [selectedDrink, setSelectedDrink] = useState<Drink | null>(null);
+  const [selectedDrink, setSelectedDrink] = useState<Drink | null>(drinks.length > 0 ? drinks[0] : null);
   const [totalToday, setTotalToday] = useState(4);
   
   // State for data from Supabase
-  const [drinks, setDrinks] = useState<Drink[]>([]);
-  const [loading, setLoading] = useState(true);
+  // We use drinks from props now
+  const [loading, setLoading] = useState(false);
 
   // Admin / Team Drank State
   const [isManageMode, setIsManageMode] = useState(false);
@@ -42,6 +52,13 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
   const [validUntil, setValidUntil] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sync selected drink if it was null
+  useEffect(() => {
+    if (!selectedDrink && drinks.length > 0) {
+      setSelectedDrink(drinks[0]);
+    }
+  }, [drinks, selectedDrink]);
 
   // Helper to get count for current drink
   // Returns 0 if cleared, otherwise defaults to 1 if not set
@@ -69,44 +86,13 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
     setValidUntil(nextWeek.toISOString().split('T')[0]);
   }, []);
 
-  // 1. Fetch Drinks from Supabase
-  useEffect(() => {
-    fetchDrinks();
-  }, []);
-
+  // Fetching is now handled in App.tsx to share data
   const fetchDrinks = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('dranken')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-
-      if (data) {
-        setDrinks(data);
-        if (data.length > 0) setSelectedDrink(data[0]);
-      }
-    } catch (error) {
-      // Quietly fall back to mock data instead of erroring out
-      console.log('Demo mode: Using mock drink data (Backend not configured)');
-      
-      const fallback: Drink[] = [
-        { id: '1', name: 'Cola', price: 1.00 },
-        { id: '2', name: 'Bier', price: 1.20 },
-        { id: '3', name: 'Water', price: 0.80 },
-        { id: '4', name: 'Chips', price: 1.50 },
-        { id: '5', name: 'Ice-Tea', price: 1.10 },
-        { id: '99', name: 'Cocktail vd Week', price: 4.50, isTemporary: true, validUntil: '2023-11-01' },
-      ];
-      setDrinks(fallback);
-      setSelectedDrink(fallback[0]);
-    } finally {
-      setLoading(false);
-    }
+    // This is now a no-op as we use props
   };
 
+  // 1. Fetch Drinks from Supabase (Effect removed as handled in App.tsx)
+  
   // 3. Add New Drink (Admin/Team Drank)
   const handleAddNewDrink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +117,7 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
       if (error) throw error;
 
       if (data) {
-        setDrinks([...drinks, ...data]);
+        onUpdateDrinks([...drinks, ...data]);
         resetForm();
         alert('Drank succesvol toegevoegd!');
       }
@@ -146,7 +132,7 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
          isTemporary: isTemporary,
          validUntil: isTemporary ? validUntil : undefined
       };
-      setDrinks([...drinks, newMockDrink]);
+      onUpdateDrinks([...drinks, newMockDrink]);
       resetForm();
       alert('Drank toegevoegd (Demo modus)');
     } finally {
@@ -200,9 +186,9 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
 
   const resetDateStr = getResetDateString();
 
-  // Generate Leaderboard based on MOCK_USERS
+  // Generate Leaderboard based on users prop
   // In a real app, this would come from a query aggregation where timestamp >= resetDate
-  const leaderboard = MOCK_USERS.map((user, index) => ({
+  const leaderboard = users.map((user, index) => ({
     id: user.id,
     name: user.nickname || user.name, // Use nickname if available
     avatar: user.avatar,
@@ -515,6 +501,39 @@ export const StrepenScreen: React.FC<StrepenScreenProps> = ({
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* Quick Streep Setting */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="material-icons-round text-blue-600 dark:text-blue-500">bolt</span>
+              Quick Streep Instelling
+            </h2>
+          </div>
+          <div className="bg-white dark:bg-[#1e2330] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              Kies welk drankje je direct wilt kunnen strepen vanaf het startscherm.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {drinks.map(drink => (
+                <button 
+                  key={`quick-${drink.id}`}
+                  onClick={() => onUpdateUser({ ...currentUser, quickDrinkId: String(drink.id) })}
+                  className={`px-3 py-2.5 text-xs font-bold rounded-xl border transition-all flex items-center justify-between ${
+                    String(currentUser.quickDrinkId || '2') === String(drink.id)
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400'
+                      : 'bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <span className="truncate">{drink.name}</span>
+                  {String(currentUser.quickDrinkId || '2') === String(drink.id) && (
+                    <span className="material-icons-round text-sm">check_circle</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       </main>

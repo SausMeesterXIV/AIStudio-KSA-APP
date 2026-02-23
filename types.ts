@@ -8,6 +8,7 @@ export interface User {
   balance: number;
   roles: string[]; // Functional roles e.g. ["Drank", "Financiën"]
   status?: 'online' | 'offline';
+  quickDrinkId?: string;
 }
 
 export interface Drink {
@@ -94,4 +95,17 @@ export interface CountdownItem {
   id: string;
   title: string;
   targetDate: Date;
+}
+
+export interface StockItem {
+  id: number;
+  name: string;
+  label: string;
+  category: string;
+  count: number;
+  unit: string;
+  exp: string;
+  urgent: boolean;
+  icon: string;
+  color: string;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ChevronBack } from '../components/ChevronBack';
-import { Quote } from '../types';
+import { Quote, User } from '../types';
 import { MOCK_USERS, getCurrentUser } from '../lib/data';
 
 interface QuotesScreenProps {
@@ -10,6 +10,7 @@ interface QuotesScreenProps {
   onAddQuote: (text: string, context: string, authorId: string) => void;
   onDeleteQuote?: (id: string) => void;
   enableManagement?: boolean; // New prop to toggle delete functionality
+  currentUser: User;
 }
 
 export const QuotesScreen: React.FC<QuotesScreenProps> = ({ 
@@ -18,7 +19,8 @@ export const QuotesScreen: React.FC<QuotesScreenProps> = ({
   onVote, 
   onAddQuote, 
   onDeleteQuote,
-  enableManagement = false 
+  enableManagement = false,
+  currentUser
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newQuoteText, setNewQuoteText] = useState('');
@@ -37,8 +39,6 @@ export const QuotesScreen: React.FC<QuotesScreenProps> = ({
   
   // View State: 'current' (Recent) or 'archive' (Top Quotes > 4 weeks)
   const [viewMode, setViewMode] = useState<'current' | 'archive'>('current');
-  
-  const currentUser = getCurrentUser();
   
   // Logic: User must have role AND management must be enabled via navigation source
   const canDelete = enableManagement && (currentUser.roles.includes('Sfeerbeheer') || currentUser.role === 'Hoofdleiding');

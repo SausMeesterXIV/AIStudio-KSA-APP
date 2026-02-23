@@ -1,12 +1,15 @@
 import React from 'react';
 import { ChevronBack } from '../components/ChevronBack';
 
+import { User } from '../types';
+
 interface MyInvoiceScreenProps {
   onBack: () => void;
   balance: number;
+  currentUser: User;
 }
 
-export const MyInvoiceScreen: React.FC<MyInvoiceScreenProps> = ({ onBack, balance }) => {
+export const MyInvoiceScreen: React.FC<MyInvoiceScreenProps> = ({ onBack, balance, currentUser }) => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-white font-sans transition-colors duration-200">
       {/* Header */}

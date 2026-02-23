@@ -1,18 +1,25 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ChevronBack } from '../components/ChevronBack';
+import { User } from '../types';
 import { getCurrentUser } from '../lib/data';
 
 interface SettingsScreenProps {
   onBack: () => void;
   onNavigate: (screenId: string) => void;
+  currentUser: User;
+  onUpdateUser: (user: User) => void;
 }
 
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onNavigate }) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onNavigate, currentUser, onUpdateUser }) => {
   const [isDark, setIsDark] = useState(false);
-  const currentUser = getCurrentUser();
   const [nickname, setNickname] = useState(currentUser.nickname || '');
   const [avatar, setAvatar] = useState(currentUser.avatar);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setNickname(currentUser.nickname || '');
+    setAvatar(currentUser.avatar);
+  }, [currentUser]);
 
   useEffect(() => {
     // Check initial
@@ -32,8 +39,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onNaviga
   };
 
   const handleSaveNickname = () => {
-    // In a real app, this would save to backend. 
-    currentUser.nickname = nickname;
+    onUpdateUser({ ...currentUser, nickname });
     alert('Bijnaam opgeslagen!');
   };
 
@@ -44,7 +50,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onNaviga
       reader.onloadend = () => {
         const result = reader.result as string;
         setAvatar(result);
-        currentUser.avatar = result; // Update local data
+        onUpdateUser({ ...currentUser, avatar: result });
       };
       reader.readAsDataURL(file);
     }

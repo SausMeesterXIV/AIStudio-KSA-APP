@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Order, Notification } from '../types';
+import { Order, Notification, User } from '../types';
 
 interface FriesOverviewScreenProps {
   onBack: () => void;
@@ -10,6 +10,7 @@ interface FriesOverviewScreenProps {
   onSetPickupTime: (time: string | null) => void;
   onArchiveSession: () => void;
   onAddNotification: (notification: Omit<Notification, 'id'>) => void;
+  currentUser: User;
 }
 
 export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({ 
@@ -20,7 +21,8 @@ export const FriesOverviewScreen: React.FC<FriesOverviewScreenProps> = ({
   pickupTime,
   onSetPickupTime,
   onArchiveSession,
-  onAddNotification
+  onAddNotification,
+  currentUser
 }) => {
   const [activeTab, setActiveTab] = useState<'Alles' | 'Frieten' | 'Snacks' | 'Sauzen'>('Alles');
   const [aggregatedItems, setAggregatedItems] = useState<any[]>([]);

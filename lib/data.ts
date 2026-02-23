@@ -106,4 +106,26 @@ export const MOCK_USERS: User[] = [
   }
 ];
 
+// Load saved profile data from localStorage
+try {
+  const savedProfile = localStorage.getItem('userProfile');
+  if (savedProfile) {
+    const { nickname, avatar } = JSON.parse(savedProfile);
+    const currentUser = MOCK_USERS.find(u => u.id === CURRENT_USER_ID);
+    if (currentUser) {
+      if (nickname !== undefined) currentUser.nickname = nickname;
+      if (avatar !== undefined) currentUser.avatar = avatar;
+    }
+  }
+} catch (e) {
+  console.error('Failed to load user profile', e);
+}
+
 export const getCurrentUser = () => MOCK_USERS.find(u => u.id === CURRENT_USER_ID) || MOCK_USERS[0];
+
+export const saveUserProfile = (nickname: string, avatar: string) => {
+  const currentUser = getCurrentUser();
+  currentUser.nickname = nickname;
+  currentUser.avatar = avatar;
+  localStorage.setItem('userProfile', JSON.stringify({ nickname, avatar }));
+};

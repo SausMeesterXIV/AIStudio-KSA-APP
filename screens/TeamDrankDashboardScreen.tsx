@@ -1,18 +1,34 @@
 import React from 'react';
 import { ChevronBack } from '../components/ChevronBack';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { StockItem, Drink } from '../types';
 
 interface TeamDrankDashboardScreenProps {
   onBack: () => void;
   onNavigate: (screen: string) => void;
+  stockItems: StockItem[];
+  drinks: Drink[];
+  onUpdateDrinks: (drinks: Drink[]) => void;
 }
 
-export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> = ({ onBack, onNavigate }) => {
+export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> = ({ 
+  onBack, 
+  onNavigate, 
+  stockItems,
+  drinks,
+  onUpdateDrinks
+}) => {
   const [excelLink, setExcelLink] = React.useState('');
   const [billingExcelLink, setBillingExcelLink] = React.useState('');
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [tempLink, setTempLink] = React.useState('');
   const [tempBillingLink, setTempBillingLink] = React.useState('');
+  
+  // Local state for editing drink prices in the modal
+  const [tempDrinks, setTempDrinks] = React.useState<Drink[]>([]);
+
+  // Calculate low stock items (urgent or count < 5)
+  const lowStockItems = stockItems.filter(item => item.urgent || item.count < 5);
 
   React.useEffect(() => {
     const savedLink = localStorage.getItem('teamDrankExcelLink');
@@ -27,12 +43,28 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
     }
   }, []);
 
+  // Initialize tempDrinks when modal opens
+  React.useEffect(() => {
+    if (isSettingsOpen) {
+      setTempDrinks([...drinks]);
+    }
+  }, [isSettingsOpen, drinks]);
+
   const handleSaveLink = () => {
     localStorage.setItem('teamDrankExcelLink', tempLink);
     setExcelLink(tempLink);
     localStorage.setItem('teamDrankBillingExcelLink', tempBillingLink);
     setBillingExcelLink(tempBillingLink);
+    
+    // Save updated drink prices
+    onUpdateDrinks(tempDrinks);
+    
     setIsSettingsOpen(false);
+  };
+
+  const handleUpdateTempDrinkPrice = (id: string | number, price: string) => {
+    const numericPrice = parseFloat(price.replace(',', '.')) || 0;
+    setTempDrinks(prev => prev.map(d => d.id === id ? { ...d, price: numericPrice } : d));
   };
 
   const handleOpenExcel = () => {
@@ -63,19 +95,26 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
       
       <main className="flex-1 px-4 pb-24 overflow-y-auto space-y-6">
         {/* Alerts Section */}
-        <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/30 rounded-2xl p-4 flex gap-4 items-start relative overflow-hidden">
-           <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
-           <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-500 shrink-0">
-             <span className="material-icons-round">inventory_2</span>
-           </div>
-           <div>
-             <h3 className="text-orange-800 dark:text-orange-400 font-bold text-sm mb-1">Lage Voorraad</h3>
-             <p className="text-orange-700/80 dark:text-orange-300/70 text-xs leading-relaxed">
-               <span className="font-bold">Jupiler</span> (2 bakken), <span className="font-bold">Fanta</span> (4 blikjes).
-               Bestel tijdig bij voor het weekend.
-             </p>
-           </div>
-        </div>
+        {lowStockItems.length > 0 && (
+          <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/30 rounded-2xl p-4 flex gap-4 items-start relative overflow-hidden">
+             <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+             <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-500 shrink-0">
+               <span className="material-icons-round">inventory_2</span>
+             </div>
+             <div>
+               <h3 className="text-orange-800 dark:text-orange-400 font-bold text-sm mb-1">Lage Voorraad</h3>
+               <p className="text-orange-700/80 dark:text-orange-300/70 text-xs leading-relaxed">
+                 {lowStockItems.map((item, index) => (
+                   <React.Fragment key={item.id}>
+                     <span className="font-bold">{item.name}</span> ({item.count} {item.unit}){index < lowStockItems.length - 1 ? ', ' : '.'}
+                   </React.Fragment>
+                 ))}
+                 <br />
+                 Bestel tijdig bij voor het weekend.
+               </p>
+             </div>
+          </div>
+        )}
 
         {/* Quick Actions Grid */}
         <div>
@@ -179,34 +218,21 @@ export const TeamDrankDashboardScreen: React.FC<TeamDrankDashboardScreenProps> =
                 <div className="mb-6">
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">Prijzen & Financieel</label>
                   <div className="space-y-3">
-                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Bier (Jupiler/Stella)</span>
-                        <div className="relative w-24">
-                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
-                          <input type="number" defaultValue="0.80" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        </div>
-                     </div>
-                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Frisdrank</span>
-                        <div className="relative w-24">
-                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
-                          <input type="number" defaultValue="0.80" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        </div>
-                     </div>
-                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Speciale Bieren</span>
-                        <div className="relative w-24">
-                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
-                          <input type="number" defaultValue="1.50" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        </div>
-                     </div>
-                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Snacks</span>
-                        <div className="relative w-24">
-                          <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
-                          <input type="number" defaultValue="0.50" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        </div>
-                     </div>
+                     {tempDrinks.map(drink => (
+                       <div key={drink.id} className="flex items-center justify-between">
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate pr-2">{drink.name}</span>
+                          <div className="relative w-24 shrink-0">
+                            <span className="absolute left-3 top-2.5 text-gray-500 text-xs">€</span>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={drink.price}
+                              onChange={(e) => handleUpdateTempDrinkPrice(drink.id, e.target.value)}
+                              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-6 pr-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                            />
+                          </div>
+                       </div>
+                     ))}
                   </div>
                 </div>
 

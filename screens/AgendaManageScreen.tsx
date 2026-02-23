@@ -79,7 +79,7 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({
   const [title, setTitle] = useState('');
   const [dateStr, setDateStr] = useState('');
   const [timeStr, setTimeStr] = useState('');
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState('De Sjelter');
   const [description, setDescription] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
 
@@ -108,7 +108,7 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({
     setTitle('');
     setDateStr('');
     setTimeStr('');
-    setLocation('');
+    setLocation('De Sjelter');
     setDescription('');
     setSelectedRole('');
   };
@@ -345,6 +345,7 @@ export const AgendaManageScreen: React.FC<AgendaManageScreenProps> = ({
                 placeholder="Locatie"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 className="w-full bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
               />
               <span className="material-icons-round absolute right-3 top-3.5 text-gray-400 text-lg">place</span>

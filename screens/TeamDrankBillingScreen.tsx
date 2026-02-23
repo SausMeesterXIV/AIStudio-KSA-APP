@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { MOCK_USERS } from '../lib/data';
+import { User } from '../types';
 
 interface TeamDrankBillingScreenProps {
   onBack: () => void;
   onNavigate: (screenId: string) => void;
+  users: User[];
 }
 
-export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ onBack, onNavigate }) => {
+export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ onBack, onNavigate, users: appUsers }) => {
   const [paidUsers, setPaidUsers] = useState<string[]>([]);
   const [initialPaidUsers, setInitialPaidUsers] = useState<string[]>([]);
   const [filter, setFilter] = useState<'all' | 'open' | 'paid'>('open');
@@ -18,12 +19,12 @@ export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ 
     setPaidUsers(parsed);
 
     // Snapshot initial state for "delayed move" logic
-    const initial = MOCK_USERS.map(u => {
+    const initial = appUsers.map(u => {
       const isPaid = u.balance >= 0 || parsed.includes(u.id);
       return isPaid ? u.id : null;
     }).filter(Boolean) as string[];
     setInitialPaidUsers(initial);
-  }, []);
+  }, [appUsers]);
 
   const togglePayment = (id: string, currentPaidStatus: boolean) => {
     let newPaidUsers;
@@ -41,7 +42,7 @@ export const TeamDrankBillingScreen: React.FC<TeamDrankBillingScreenProps> = ({ 
   };
 
   // Derive users with current status
-  const users = MOCK_USERS.map(user => {
+  const users = appUsers.map(user => {
     const isPaidOverride = paidUsers.includes(user.id);
     const hasDebt = user.balance < 0;
     // User is paid if they have no debt OR are explicitly marked as paid

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { StockItem } from '../types';
 
 interface TeamDrankStockScreenProps {
   onBack: () => void;
+  stockItems: StockItem[];
+  onUpdateStock: (items: StockItem[]) => void;
 }
 
-export const TeamDrankStockScreen: React.FC<TeamDrankStockScreenProps> = ({ onBack }) => {
+export const TeamDrankStockScreen: React.FC<TeamDrankStockScreenProps> = ({ onBack, stockItems, onUpdateStock }) => {
   const [activeFilter, setActiveFilter] = useState('Standaard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,18 +26,7 @@ export const TeamDrankStockScreen: React.FC<TeamDrankStockScreenProps> = ({ onBa
     icon: 'inventory_2'
   });
 
-  const [items, setItems] = useState([
-    { id: 1, name: 'Stella Vaten (50L)', label: 'Kampvuuravond', category: 'Standaard', count: 3, unit: 'stuks', exp: '12/10/24', urgent: true, icon: 'sports_bar', color: 'bg-yellow-500' },
-    { id: 2, name: 'Cola Kratten (24x25cl)', label: 'Startdag', category: 'Standaard', count: 8, unit: 'kratt.', exp: '01/05/25', urgent: false, icon: 'local_drink', color: 'bg-red-900' },
-    { id: 3, name: 'Lays Chips Paprika', label: 'Fuif', category: 'Evenementen', count: 12, unit: 'dozen', exp: '15/11/24', urgent: false, icon: 'tapas', color: 'bg-yellow-200 text-yellow-800' },
-    { id: 4, name: "Diepvries Pizza's", label: 'Leidersweekend', category: "Extra's", count: 5, unit: 'stuks', exp: '20/06/25', urgent: false, icon: 'local_pizza', color: 'bg-orange-500' },
-    { id: 5, name: 'Water Plat (1.5L)', label: 'Sportdag', category: 'Standaard', count: 24, unit: 'flessen', exp: '01/01/26', urgent: false, icon: 'water_drop', color: 'bg-blue-400' },
-    { id: 6, name: 'Jenever Bessen', label: 'Kerstmarkt', category: 'Evenementen', count: 2, unit: 'flessen', exp: 'Morgen', urgent: true, icon: 'liquor', color: 'bg-green-500' },
-    { id: 7, name: 'Cara Pils (33cl)', label: 'Leiding', category: "Extra's", count: 48, unit: 'blikken', exp: '01/01/26', urgent: false, icon: 'sports_bar', color: 'bg-red-500' },
-    { id: 8, name: 'Gin (Bombay)', label: 'Fuif', category: 'Evenementen', count: 3, unit: 'flessen', exp: 'Onbeperkt', urgent: false, icon: 'local_bar', color: 'bg-blue-600' },
-  ]);
-
-  const filteredItems = items.filter(item => {
+  const filteredItems = stockItems.filter(item => {
     const matchesFilter = item.category === activeFilter;
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
@@ -73,33 +65,38 @@ export const TeamDrankStockScreen: React.FC<TeamDrankStockScreenProps> = ({ onBa
     if (!formData.name || !formData.count) return;
 
     if (editingItem) {
-      setItems(prev => prev.map(item => item.id === editingItem.id ? {
+      onUpdateStock(stockItems.map(item => item.id === editingItem.id ? {
         ...item,
         ...formData,
         count: parseInt(formData.count) || 0
       } : item));
     } else {
-      const newItem = {
+      const newItem: StockItem = {
         id: Date.now(),
-        ...formData,
+        name: formData.name,
+        category: formData.category,
         count: parseInt(formData.count) || 0,
+        unit: formData.unit,
+        exp: formData.exp,
+        urgent: formData.urgent,
+        icon: formData.icon,
         label: '',
         color: 'bg-blue-500' // Default color
       };
-      setItems(prev => [newItem, ...prev]);
+      onUpdateStock([newItem, ...stockItems]);
     }
     setIsModalOpen(false);
   };
 
   const handleDelete = () => {
     if (editingItem) {
-      setItems(prev => prev.filter(item => item.id !== editingItem.id));
+      onUpdateStock(stockItems.filter(item => item.id !== editingItem.id));
       setIsModalOpen(false);
     }
   };
 
   // Prepare data for chart
-  const chartData = items.map(item => ({
+  const chartData = stockItems.map(item => ({
     name: item.name.split(' ')[0], // Short name
     count: item.count,
     full: item
@@ -224,11 +221,11 @@ export const TeamDrankStockScreen: React.FC<TeamDrankStockScreenProps> = ({ onBa
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-500 text-white p-4 rounded-2xl shadow-lg shadow-blue-500/20">
-                 <div className="text-3xl font-bold mb-1">{items.length}</div>
+                 <div className="text-3xl font-bold mb-1">{stockItems.length}</div>
                  <div className="text-xs font-medium text-blue-100 uppercase tracking-wide">Totaal Items</div>
               </div>
               <div className="bg-red-500 text-white p-4 rounded-2xl shadow-lg shadow-red-500/20">
-                 <div className="text-3xl font-bold mb-1">{items.filter(i => i.urgent).length}</div>
+                 <div className="text-3xl font-bold mb-1">{stockItems.filter(i => i.urgent).length}</div>
                  <div className="text-xs font-medium text-red-100 uppercase tracking-wide">Dringend</div>
               </div>
             </div>
@@ -272,7 +269,7 @@ export const TeamDrankStockScreen: React.FC<TeamDrankStockScreenProps> = ({ onBa
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                     {items.map(item => (
+                     {stockItems.map(item => (
                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{item.name}</td>
                          <td className="px-4 py-3 text-right font-bold text-blue-600 dark:text-blue-400">{item.count} <span className="text-[10px] text-gray-400 font-normal">{item.unit}</span></td>
@@ -348,12 +345,10 @@ export const TeamDrankStockScreen: React.FC<TeamDrankStockScreenProps> = ({ onBa
                       onChange={(e) => setFormData({...formData, unit: e.target.value})}
                       className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="stuks">stuks</option>
-                      <option value="bakken">bakken</option>
                       <option value="flessen">flessen</option>
                       <option value="blikken">blikken</option>
-                      <option value="vaten">vaten</option>
-                      <option value="dozen">dozen</option>
+                      <option value="bakken">bakken</option>
+                      <option value="stuks">stuks</option>
                     </select>
                   </div>
                 </div>

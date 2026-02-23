@@ -12,6 +12,7 @@ interface FriesScreenProps {
   sessionStatus: 'open' | 'closed' | 'completed' | 'ordering' | 'ordered';
   onSessionChange: (status: 'open' | 'closed' | 'completed' | 'ordering' | 'ordered') => void;
   pickupTime: string | null;
+  currentUser: User;
 }
 
 export const FriesScreen: React.FC<FriesScreenProps> = ({ 
@@ -22,7 +23,8 @@ export const FriesScreen: React.FC<FriesScreenProps> = ({
   myOrders,
   sessionStatus,
   onSessionChange,
-  pickupTime
+  pickupTime,
+  currentUser
 }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeCategory, setActiveCategory] = useState<'frieten' | 'snacks' | 'sauzen'>('frieten');
@@ -39,7 +41,6 @@ export const FriesScreen: React.FC<FriesScreenProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<string>('');
 
-  const currentUser = getCurrentUser();
   const isOrderingOpen = sessionStatus === 'open';
 
   // Helper to check if order is from today
