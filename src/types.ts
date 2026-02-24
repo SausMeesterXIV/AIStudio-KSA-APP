@@ -95,3 +95,10 @@ export interface Streak {
   price: number;
   timestamp: Date;
 }
+
+export interface BierpongGame {
+  id: string;
+  playerIds: string[];
+  winnerId: string;
+  timestamp: Date;
+}

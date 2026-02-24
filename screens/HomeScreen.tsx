@@ -303,6 +303,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                </div>
              )}
           </div>
+
+          {/* Bierpong Button */}
+          <div 
+            onClick={() => onNavigate('bierpong')}
+            className="flex items-center gap-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors cursor-pointer"
+          >
+            <div className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl h-14 w-14 flex flex-col items-center justify-center shrink-0 border border-gray-200 dark:border-gray-700">
+              <span className="material-icons-round text-lg">sports_bar</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-900 dark:text-white text-base">Bierpong</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Bekijk de stand</p>
+            </div>
+            <span className="material-icons-round text-gray-300">chevron_right</span>
+          </div>
+
         </section>
 
         {/* --- ADMIN SECTIONS BELOW --- */}

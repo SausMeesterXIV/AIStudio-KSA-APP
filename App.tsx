@@ -21,9 +21,10 @@ import { CredentialsScreen } from './screens/CredentialsScreen';
 import { NudgeSelectorScreen } from './screens/NudgeSelectorScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NewMessageScreen } from './screens/NewMessageScreen';
+import { BierpongScreen } from './screens/BierpongScreen';
 import { MyInvoiceScreen } from './screens/MyInvoiceScreen';
 import { QuotesScreen } from './screens/QuotesScreen';
-import { Order, CartItem, Notification, User, Event, Quote, CountdownItem, StockItem, Drink, Streak } from './types';
+import { Order, CartItem, Notification, User, Event, Quote, CountdownItem, StockItem, Drink, Streak, BierpongGame } from './types';
 import { getCurrentUser, MOCK_USERS } from './lib/data';
 import { supabase } from './lib/supabase';
 
@@ -158,6 +159,23 @@ const App: React.FC = () => {
       targetDate: new Date(nextYear, 6, 21) 
     }];
   });
+
+  // Centralized Bierpong Games State
+  const [bierpongGames, setBierpongGames] = useState<BierpongGame[]>([
+    { id: 'bp1', playerIds: ['1', '2'], winnerId: '1', timestamp: new Date(new Date().setDate(new Date().getDate() - 5)) },
+    { id: 'bp2', playerIds: ['1', '3'], winnerId: '3', timestamp: new Date(new Date().setDate(new Date().getDate() - 4)) },
+    { id: 'bp3', playerIds: ['2', '4'], winnerId: '2', timestamp: new Date(new Date().setDate(new Date().getDate() - 3)) },
+    { id: 'bp4', playerIds: ['1', '2'], winnerId: '1', timestamp: new Date(new Date().setDate(new Date().getDate() - 2)) },
+    { id: 'bp5', playerIds: ['3', '4'], winnerId: '3', timestamp: new Date(new Date().setDate(new Date().getDate() - 1)) },
+    { id: 'bp6', playerIds: ['1', '4'], winnerId: '4', timestamp: new Date() },
+    { id: 'bp7', playerIds: ['1', '2'], winnerId: '2', timestamp: new Date(new Date().setDate(new Date().getDate() - 6)) },
+    { id: 'bp8', playerIds: ['3', '5'], winnerId: '3', timestamp: new Date(new Date().setDate(new Date().getDate() - 7)) },
+    { id: 'bp9', playerIds: ['1', '3'], winnerId: '1', timestamp: new Date(new Date().setDate(new Date().getDate() - 8)) },
+    { id: 'bp10', playerIds: ['2', '5'], winnerId: '5', timestamp: new Date(new Date().setDate(new Date().getDate() - 9)) },
+    { id: 'bp11', playerIds: ['1', '2'], winnerId: '1', timestamp: new Date(new Date().setDate(new Date().getDate() - 10)) },
+    { id: 'bp12', playerIds: ['3', '4'], winnerId: '4', timestamp: new Date(new Date().setDate(new Date().getDate() - 11)) },
+    { id: 'bp13', playerIds: ['1', '5'], winnerId: '1', timestamp: new Date(new Date().setDate(new Date().getDate() - 12)) },
+  ]);
 
   // Centralized Quotes State
   // Mock data updated to use arrays for likes/dislikes. '1' is the current user ID in data.ts
@@ -559,7 +577,8 @@ const App: React.FC = () => {
         'my-invoice',
         'quotes',
         'quotes-manage',
-        'credentials'
+        'credentials',
+        'bierpong'
       ];
       
       if (subModules.includes(screenId)) {
@@ -744,6 +763,13 @@ const App: React.FC = () => {
           countdowns={countdowns}
           onSaveCountdowns={setCountdowns}
         />;
+      case 'bierpong':
+        return <BierpongScreen 
+          onBack={() => handleInternalNavigate(previousScreen)} 
+          bierpongGames={bierpongGames}
+          users={users}
+        />;
+
       default:
         return <HomeScreen 
           onNavigate={handleInternalNavigate} 
